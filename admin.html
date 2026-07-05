@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calon Gloria 远程后台</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .container { max-width: 1280px; margin: auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
+        .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .panel { border: 1px solid #e5e5ea; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #fbfbfd; }
+        .login-grid, .account-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: 700; font-size: 0.84em; }
+        input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.92em; }
+        input[type="number"] { text-align: right; }
+        button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; background: #0055b3; color: #fff; }
+        button.secondary { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
+        button.danger { background: #d64045; }
+        button:disabled { opacity: 0.55; cursor: not-allowed; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .tabs button { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
+        .tabs button.active { background: #0055b3; color: #fff; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84em; min-width: 1180px; }
+        th, td { border: 1px solid #e5e5ea; padding: 7px; text-align: center; vertical-align: middle; }
+        th { background: #f5f5f7; font-weight: 700; }
+        td:first-child { text-align: left; font-weight: 700; }
+        .readonly { background: #f7fff5; color: #1f6f35; font-weight: 700; }
+        .status { min-height: 20px; color: #666; font-size: 0.9em; }
+        .hidden { display: none; }
+        .note { color: #666; font-size: 0.88em; line-height: 1.5; }
+        .error { color: #d64045; font-weight: 700; }
+        .success { color: #1f6f35; font-weight: 700; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Calon Gloria 远程后台</h1>
+
+    <div id="config-warning" class="panel error hidden">尚未配置 Supabase。请先填写 supabase-config.js 里的 url 与 anonKey。</div>
+
+    <div id="login-panel" class="panel">
+        <div class="login-grid">
+            <div>
+                <label for="email">邮箱</label>
+                <input id="email" type="email" autocomplete="username">
+            </div>
+            <div>
+                <label for="password">密码</label>
+                <input id="password" type="password" autocomplete="current-password">
+            </div>
+            <button onclick="signIn()">登录后台</button>
+            <a href="/" style="align-self:center; color:#0055b3; font-weight:700;">返回前端价格页</a>
+        </div>
+    </div>
+
+    <div id="app" class="hidden">
+        <div class="bar">
+            <div>
+                <strong id="user-label"></strong>
+                <span id="role-label" class="note"></span>
+            </div>
+            <button class="secondary" onclick="signOut()">退出登录</button>
+        </div>
+        <div id="not-owner" class="panel error hidden">当前账号没有后台编辑权限。请使用 owner 账号登录。</div>
+
+        <div id="owner-console" class="hidden">
+            <div class="tabs">
+                <button id="tab-pricing" class="active" onclick="switchTab('pricing')">定价模型</button>
+                <button id="tab-accounts" onclick="switchTab('accounts')">账号权限</button>
+                <button id="tab-access" onclick="switchTab('access')">前端访问</button>
+            </div>
+
+            <div id="view-pricing">
+                <div class="bar">
+                    <div class="note">保存完整后台模型后，点击“发布前端价格”会只发布型号、零售未税价、代理未税价。</div>
+                    <div>
+                        <button class="secondary" onclick="loadModels()">刷新后台数据</button>
+                        <button onclick="saveModels()">保存后台模型</button>
+                        <button onclick="publishPrices()">发布前端价格</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>型号</th>
+                                <th>定价方式</th>
+                                <th>到岸成本 RMB</th>
+                                <th>竞品价 IDR</th>
+                                <th>定价比例 %</th>
+                                <th>倒推目标毛利 %</th>
+                                <th>代理折扣 %</th>
+                                <th>佣金 %</th>
+                                <th>零售未税 RMB</th>
+                                <th>代理未税 RMB</th>
+                            </tr>
+                        </thead>
+                        <tbody id="model-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-accounts" class="hidden">
+                <div class="panel note">
+                    先在 Supabase Auth 里邀请/创建用户，再把该用户的 UUID 和邮箱加入这里。`owner` 可以编辑后台，`viewer` 只能在前端私密模式下查看价格。
+                </div>
+                <div class="account-grid panel">
+                    <div>
+                        <label for="profile-user-id">用户 UUID</label>
+                        <input id="profile-user-id" placeholder="auth.users.id">
+                    </div>
+                    <div>
+                        <label for="profile-email">邮箱</label>
+                        <input id="profile-email" type="email">
+                    </div>
+                    <div>
+                        <label for="profile-role">角色</label>
+                        <select id="profile-role">
+                            <option value="viewer">viewer</option>
+                            <option value="owner">owner</option>
+                        </select>
+                    </div>
+                    <button onclick="upsertProfile()">保存账号权限</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>邮箱</th>
+                                <th>用户 UUID</th>
+                                <th>角色</th>
+                                <th>启用</th>
+                            </tr>
+                        </thead>
+                        <tbody id="profile-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-access" class="hidden">
+                <div class="panel">
+                    <label for="frontend-mode">前端价格页访问方式</label>
+                    <select id="frontend-mode">
+                        <option value="public">公开访问</option>
+                        <option value="private">需要登录</option>
+                    </select>
+                    <div style="margin-top:12px;">
+                        <button onclick="saveAccessMode()">保存访问设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+    let client = null;
+    let currentUser = null;
+    let currentProfile = null;
+    let models = [];
+
+    function setStatus(message, kind = '') {
+        let el = document.getElementById('status');
+        el.className = `status ${kind}`;
+        el.textContent = message || '';
+    }
+
+    function getClient() {
+        let cfg = window.CALON_SUPABASE || {};
+        if (!cfg.url || !cfg.anonKey || !window.supabase) return null;
+        if (!client) client = window.supabase.createClient(cfg.url, cfg.anonKey);
+        return client;
+    }
+
+    function switchTab(name) {
+        ['pricing', 'accounts', 'access'].forEach(tab => {
+            document.getElementById(`view-${tab}`).classList.toggle('hidden', tab !== name);
+            document.getElementById(`tab-${tab}`).classList.toggle('active', tab === name);
+        });
+        if (name === 'accounts') loadProfiles();
+        if (name === 'access') loadAccessMode();
+    }
+
+    async function signIn() {
+        let sb = getClient();
+        if (!sb) {
+            document.getElementById('config-warning').classList.remove('hidden');
+            return;
+        }
+        let email = document.getElementById('email').value.trim();
+        let password = document.getElementById('password').value;
+        let { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        await bootstrap();
+    }
+
+    async function signOut() {
+        let sb = getClient();
+        if (sb) await sb.auth.signOut();
+        location.reload();
+    }
+
+    async function bootstrap() {
+        let sb = getClient();
+        if (!sb) {
+            document.getElementById('config-warning').classList.remove('hidden');
+            return;
+        }
+        let { data } = await sb.auth.getSession();
+        if (!data.session) return;
+        currentUser = data.session.user;
+        let { data: profile, error } = await sb
+            .from('app_profiles')
+            .select('user_id, email, role, is_active')
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        currentProfile = profile;
+        document.getElementById('login-panel').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        document.getElementById('user-label').textContent = currentUser.email || currentUser.id;
+        document.getElementById('role-label').textContent = profile ? ` / ${profile.role}` : ' / 未授权';
+        let isOwner = profile?.role === 'owner' && profile?.is_active;
+        document.getElementById('not-owner').classList.toggle('hidden', isOwner);
+        document.getElementById('owner-console').classList.toggle('hidden', !isOwner);
+        if (isOwner) await loadModels();
+    }
+
+    function numberValue(value, fallback = 0) {
+        let parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function calculateModel(m) {
+        let method = m.pricingMethod || (numberValue(m.compPrice) > 0 ? 'benchmark' : 'margin');
+        let dealerDiscount = numberValue(m.dealerDiscount, 85) / 100;
+        let commissionRate = numberValue(m.commissionRate, 0) / 100;
+        let targetMarginRate = numberValue(m.targetMarginRate, 50) / 100;
+        if (method === 'margin') {
+            let denominator = 1 - commissionRate - targetMarginRate;
+            m.dealerPrice = denominator > 0 ? numberValue(m.cost) / denominator : 0;
+            m.ourPrice = dealerDiscount > 0 ? m.dealerPrice / dealerDiscount : 0;
+        } else {
+            let compPriceRmb = numberValue(m.compPrice) / 2650;
+            m.ourPrice = compPriceRmb * (numberValue(m.priceRatio, 85) / 100);
+            m.dealerPrice = m.ourPrice * dealerDiscount;
+        }
+        return m;
+    }
+
+    function renderModels() {
+        models.forEach(calculateModel);
+        document.getElementById('model-body').innerHTML = models.map((m, index) => `
+            <tr>
+                <td><input value="${escapeHtml(m.name || '')}" oninput="updateModel(${index}, 'name', this.value)"></td>
+                <td>
+                    <select onchange="updateModel(${index}, 'pricingMethod', this.value)">
+                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>竞品对标</option>
+                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>毛利倒推</option>
+                    </select>
+                </td>
+                <td><input type="number" value="${m.cost || 0}" oninput="updateModel(${index}, 'cost', this.value)"></td>
+                <td><input type="number" value="${m.compPrice || 0}" oninput="updateModel(${index}, 'compPrice', this.value)"></td>
+                <td><input type="number" value="${m.priceRatio || 85}" oninput="updateModel(${index}, 'priceRatio', this.value)"></td>
+                <td><input type="number" value="${m.targetMarginRate || 50}" oninput="updateModel(${index}, 'targetMarginRate', this.value)"></td>
+                <td><input type="number" value="${m.dealerDiscount || 85}" oninput="updateModel(${index}, 'dealerDiscount', this.value)"></td>
+                <td><input type="number" value="${m.commissionRate || 0}" oninput="updateModel(${index}, 'commissionRate', this.value)"></td>
+                <td class="readonly">¥${Math.round(m.ourPrice || 0).toLocaleString()}</td>
+                <td class="readonly">¥${Math.round(m.dealerPrice || 0).toLocaleString()}</td>
+            </tr>
+        `).join('');
+    }
+
+    function updateModel(index, field, value) {
+        let numericFields = ['cost', 'compPrice', 'priceRatio', 'targetMarginRate', 'dealerDiscount', 'commissionRate'];
+        models[index][field] = numericFields.includes(field) ? numberValue(value) : value;
+        renderModels();
+    }
+
+    async function loadModels() {
+        let sb = getClient();
+        let { data, error } = await sb
+            .from('pricing_models')
+            .select('id, payload')
+            .order('id', { ascending: true });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        models = (data || []).map(row => ({ id: row.id, ...row.payload }));
+        renderModels();
+        setStatus(models.length ? '后台模型已加载。' : '后台模型为空，请先执行 seed SQL 导入初始模型。');
+    }
+
+    async function saveModels() {
+        let sb = getClient();
+        let rows = models.map((m, index) => {
+            let id = Number(m.id || index + 1);
+            let payload = { ...m, id };
+            delete payload.ourPrice;
+            delete payload.dealerPrice;
+            return { id, payload };
+        });
+        let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        setStatus('后台模型已保存。', 'success');
+    }
+
+    async function publishPrices() {
+        let sb = getClient();
+        models.forEach(calculateModel);
+        let rows = models.map((m, index) => ({
+            id: Number(m.id || index + 1),
+            sort_order: index + 1,
+            name: m.name,
+            retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
+            dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100
+        }));
+        let remove = await sb.from('published_prices').delete().gt('id', 0);
+        if (remove.error) {
+            setStatus(remove.error.message, 'error');
+            return;
+        }
+        let { error } = await sb.from('published_prices').insert(rows);
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        setStatus('前端价格已发布。', 'success');
+    }
+
+    async function loadProfiles() {
+        let sb = getClient();
+        let { data, error } = await sb
+            .from('app_profiles')
+            .select('user_id, email, role, is_active')
+            .order('email', { ascending: true });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        document.getElementById('profile-body').innerHTML = (data || []).map(p => `
+            <tr>
+                <td>${escapeHtml(p.email || '')}</td>
+                <td>${escapeHtml(p.user_id || '')}</td>
+                <td>${escapeHtml(p.role || '')}</td>
+                <td>${p.is_active ? '是' : '否'}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function upsertProfile() {
+        let sb = getClient();
+        let row = {
+            user_id: document.getElementById('profile-user-id').value.trim(),
+            email: document.getElementById('profile-email').value.trim(),
+            role: document.getElementById('profile-role').value,
+            is_active: true
+        };
+        if (!row.user_id || !row.email) {
+            setStatus('请填写用户 UUID 和邮箱。', 'error');
+            return;
+        }
+        let { error } = await sb.from('app_profiles').upsert(row, { onConflict: 'user_id' });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        await loadProfiles();
+        setStatus('账号权限已保存。', 'success');
+    }
+
+    async function loadAccessMode() {
+        let sb = getClient();
+        let { data } = await sb
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'frontend_access')
+            .maybeSingle();
+        document.getElementById('frontend-mode').value = data?.value?.mode || 'public';
+    }
+
+    async function saveAccessMode() {
+        let sb = getClient();
+        let mode = document.getElementById('frontend-mode').value;
+        let { error } = await sb.from('app_settings').upsert({
+            key: 'frontend_access',
+            value: { mode }
+        }, { onConflict: 'key' });
+        if (error) {
+            setStatus(error.message, 'error');
+            return;
+        }
+        setStatus('前端访问设置已保存。', 'success');
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    bootstrap();
+</script>
+</body>
+</html>

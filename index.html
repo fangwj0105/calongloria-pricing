@@ -15,6 +15,9 @@
         button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.88em; }
         button { background: #0055b3; color: white; }
         button:hover { background: #00449e; }
+        .access-box { margin-bottom: 18px; padding: 14px; background: #fff8f0; border: 1px solid #f2d6ad; border-radius: 8px; }
+        .access-box input { text-align: left; }
+        .status { margin-bottom: 12px; color: #666; font-size: 0.86em; }
         .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .table-responsive { overflow-x: auto; }
         .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
@@ -40,12 +43,24 @@
         <button onclick="renderPage()">刷新价格表</button>
         <button onclick="exportMarketPricesPdf()">导出 PDF 表格</button>
     </div>
+    <div id="access-box" class="access-box" hidden>
+        <strong>价格页需要登录访问</strong>
+        <div class="settings" style="margin:12px 0 0; padding:0; border:none; background:transparent;">
+            <input type="email" id="front-email" placeholder="邮箱">
+            <input type="password" id="front-password" placeholder="密码">
+            <button onclick="loginFrontend()">登录</button>
+        </div>
+    </div>
+    <div id="status" class="status"></div>
     <div id="price-output"></div>
 </div>
 
+<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
     const PRICING_MODELS_KEY = 'indonesiaPricingModels';
     const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
+    let supabaseClient = null;
     const PUBLIC_PRICE_ROWS = [
         {
                 "name": "T3BS",
@@ -130,6 +145,19 @@
 ];
     let models = [];
 
+    function setStatus(message) {
+        document.getElementById('status').textContent = message || '';
+    }
+
+    function getSupabaseClient() {
+        let config = window.CALON_SUPABASE || {};
+        if (!config.url || !config.anonKey || !window.supabase) return null;
+        if (!supabaseClient) {
+            supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+        }
+        return supabaseClient;
+    }
+
     function escapeHtml(value) {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -175,8 +203,65 @@
         return PUBLIC_PRICE_ROWS.map(row => ({...row}));
     }
 
-    function loadModels() {
+    async function getRemoteAccessMode(client) {
+        if (!client) return window.CALON_SUPABASE?.requireFrontendLogin ? 'private' : 'public';
+        let { data } = await client
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'frontend_access')
+            .maybeSingle();
+        return data?.value?.mode || (window.CALON_SUPABASE?.requireFrontendLogin ? 'private' : 'public');
+    }
+
+    async function ensureFrontendAccess(client) {
+        let accessMode = await getRemoteAccessMode(client);
+        let accessBox = document.getElementById('access-box');
+        if (accessMode !== 'private') {
+            accessBox.hidden = true;
+            return true;
+        }
+        let { data } = await client.auth.getSession();
+        let hasSession = !!data?.session;
+        accessBox.hidden = hasSession;
+        return hasSession;
+    }
+
+    async function loadRemoteModels(client) {
+        if (!client) return [];
+        let { data, error } = await client
+            .from('published_prices')
+            .select('name, retail_rmb, dealer_rmb, sort_order')
+            .order('sort_order', { ascending: true });
+        if (error) throw error;
+        return (data || []).map(row => ({
+            name: row.name,
+            retailRmb: Number(row.retail_rmb || 0),
+            dealerRmb: Number(row.dealer_rmb || 0)
+        }));
+    }
+
+    async function loadModels() {
+        let client = getSupabaseClient();
+        if (client) {
+            try {
+                let allowed = await ensureFrontendAccess(client);
+                if (!allowed) {
+                    models = [];
+                    setStatus('请登录后查看价格表。');
+                    return;
+                }
+                let remoteRows = await loadRemoteModels(client);
+                if (remoteRows.length) {
+                    models = remoteRows;
+                    setStatus('已读取远程发布价格。');
+                    return;
+                }
+            } catch (error) {
+                setStatus(`远程价格读取失败，已使用本地发布价格。${error.message || ''}`);
+            }
+        }
         models = clonePublicRows();
+        if (!client) setStatus('当前使用静态发布价格。');
     }
 
     function recalcModels() {
@@ -232,10 +317,26 @@
         document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(settings.rate, settings.ppnRate);
     }
 
-    function renderPage() {
+    async function renderPage() {
         loadSettings();
-        loadModels();
+        await loadModels();
         renderPrices();
+    }
+
+    async function loginFrontend() {
+        let client = getSupabaseClient();
+        if (!client) {
+            alert('尚未配置远程登录服务。');
+            return;
+        }
+        let email = document.getElementById('front-email').value.trim();
+        let password = document.getElementById('front-password').value;
+        let { error } = await client.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert(error.message);
+            return;
+        }
+        renderPage();
     }
 
     function exportMarketPricesPdf() {
