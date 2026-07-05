@@ -52,6 +52,8 @@
         .market-price-table td:first-child { text-align: left; font-weight: 700; }
         .market-price-table .dealer-col { background: #f7fff5; color: #1f6f35; }
         .status { min-height: 20px; color: #666; font-size: 0.9em; }
+        .status-bar { position: sticky; top: 0; z-index: 5; margin-bottom: 14px; padding: 10px 12px; border: 1px solid #e5e5ea; border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+        .status-bar:empty { display: none; }
         .hidden { display: none; }
         .note { color: #666; font-size: 0.88em; line-height: 1.5; }
         .error { color: #d64045; font-weight: 700; }
@@ -63,6 +65,7 @@
     <h1>Calon Gloria 远程后台</h1>
 
     <div id="config-warning" class="panel error hidden">尚未配置 Supabase。请先填写 supabase-config.js 里的 url 与 anonKey。</div>
+    <div id="status" class="status status-bar"></div>
 
     <div id="login-panel" class="panel">
         <div class="login-grid">
@@ -218,7 +221,6 @@
         </div>
     </div>
 
-    <div id="status" class="status"></div>
 </div>
 
 <script src="supabase-config.js?v=20260705-prototype1"></script>
@@ -234,7 +236,7 @@
 
     function setStatus(message, kind = '') {
         let el = document.getElementById('status');
-        el.className = `status ${kind}`;
+        el.className = `status status-bar ${kind}`;
         el.textContent = message || '';
     }
 
@@ -523,7 +525,7 @@
             setStatus(error.message, 'error');
             return;
         }
-        setStatus('前端价格已发布。', 'success');
+        setStatus(`前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
     }
 
     function formatRmb(value) {
