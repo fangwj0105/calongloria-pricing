@@ -24,6 +24,8 @@
         button:hover { background: #00449e; }
         .access-box { margin-bottom: 18px; padding: 14px; background: #fff8f0; border: 1px solid #f2d6ad; border-radius: 8px; }
         .access-box input { text-align: left; }
+        .session-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; color: #555; font-size: 0.88em; }
+        .session-bar button { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         .status { margin-bottom: 12px; color: #666; font-size: 0.86em; }
         .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .table-responsive { overflow-x: auto; }
@@ -51,105 +53,28 @@
         <button onclick="exportMarketPricesPdf()">导出 PDF 表格</button>
     </div>
     <div id="access-box" class="access-box" hidden>
-        <strong>价格页需要登录访问</strong>
+        <strong>价格页需要授权账号登录访问</strong>
         <div class="settings" style="margin:12px 0 0; padding:0; border:none; background:transparent;">
             <input type="email" id="front-email" placeholder="邮箱">
             <input type="password" id="front-password" placeholder="密码">
             <button onclick="loginFrontend()">登录</button>
         </div>
     </div>
+    <div id="session-bar" class="session-bar" hidden>
+        <span id="session-label"></span>
+        <button onclick="logoutFrontend()">退出登录</button>
+    </div>
     <div id="status" class="status"></div>
     <div id="price-output"></div>
 </div>
 
-<script src="supabase-config.js?v=20260705-reset1"></script>
+<script src="supabase-config.js?v=20260705-access1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
     const PRICING_MODELS_KEY = 'indonesiaPricingModels';
     const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
     let supabaseClient = null;
-    const PUBLIC_PRICE_ROWS = [
-        {
-                "name": "T3BS",
-                "retailRmb": 6671.7,
-                "dealerRmb": 5670.94
-        },
-        {
-                "name": "T5BS",
-                "retailRmb": 6582.2,
-                "dealerRmb": 5594.87
-        },
-        {
-                "name": "T9.8BL",
-                "retailRmb": 8339.62,
-                "dealerRmb": 7088.68
-        },
-        {
-                "name": "T15BS",
-                "retailRmb": 10520.75,
-                "dealerRmb": 8942.64
-        },
-        {
-                "name": "T15BL",
-                "retailRmb": 10520.75,
-                "dealerRmb": 8942.64
-        },
-        {
-                "name": "T15DBL",
-                "retailRmb": 13253.05,
-                "dealerRmb": 11265.09
-        },
-        {
-                "name": "T20BS",
-                "retailRmb": 13503.77,
-                "dealerRmb": 11478.21
-        },
-        {
-                "name": "T20BL",
-                "retailRmb": 13503.77,
-                "dealerRmb": 11478.21
-        },
-        {
-                "name": "T30BS",
-                "retailRmb": 14433.96,
-                "dealerRmb": 12268.87
-        },
-        {
-                "name": "T30BL",
-                "retailRmb": 14433.96,
-                "dealerRmb": 12268.87
-        },
-        {
-                "name": "T40BS",
-                "retailRmb": 17930.19,
-                "dealerRmb": 15240.66
-        },
-        {
-                "name": "T40BL",
-                "retailRmb": 17930.19,
-                "dealerRmb": 15240.66
-        },
-        {
-                "name": "F6BS",
-                "retailRmb": 8672.39,
-                "dealerRmb": 7371.53
-        },
-        {
-                "name": "F20BL",
-                "retailRmb": 20729.88,
-                "dealerRmb": 17620.4
-        },
-        {
-                "name": "F60FWTL",
-                "retailRmb": 62619.53,
-                "dealerRmb": 53226.6
-        },
-        {
-                "name": "F60BWTL",
-                "retailRmb": 60233.83,
-                "dealerRmb": 51198.76
-        }
-];
+    const PUBLIC_PRICE_ROWS = [];
     let models = [];
 
     function setStatus(message) {
@@ -223,14 +148,33 @@
     async function ensureFrontendAccess(client) {
         let accessMode = await getRemoteAccessMode(client);
         let accessBox = document.getElementById('access-box');
+        let sessionBar = document.getElementById('session-bar');
+        let sessionLabel = document.getElementById('session-label');
         if (accessMode !== 'private') {
             accessBox.hidden = true;
+            sessionBar.hidden = true;
             return true;
         }
         let { data } = await client.auth.getSession();
-        let hasSession = !!data?.session;
-        accessBox.hidden = hasSession;
-        return hasSession;
+        let session = data?.session;
+        if (!session) {
+            accessBox.hidden = false;
+            sessionBar.hidden = true;
+            setStatus('请使用后台账号管理中已启用的邮箱登录。');
+            return false;
+        }
+        let { data: profile, error } = await client
+            .from('app_profiles')
+            .select('role, is_active, email')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+        if (error) throw error;
+        let allowed = !!profile?.is_active && ['owner', 'viewer'].includes(profile.role);
+        accessBox.hidden = allowed;
+        sessionBar.hidden = false;
+        sessionLabel.textContent = `${session.user.email || profile?.email || '当前账号'} / ${allowed ? profile.role : '未授权'}`;
+        if (!allowed) setStatus('当前账号未在后台账号权限中启用，不能查看前端价格。');
+        return allowed;
     }
 
     async function loadRemoteModels(client) {
@@ -264,11 +208,13 @@
                     return;
                 }
             } catch (error) {
-                setStatus(`远程价格读取失败，已使用本地发布价格。${error.message || ''}`);
+                models = [];
+                setStatus(`远程价格读取失败，请确认账号权限和网络状态。${error.message || ''}`);
+                return;
             }
         }
         models = clonePublicRows();
-        if (!client) setStatus('当前使用静态发布价格。');
+        if (!client) setStatus('尚未配置远程登录服务，无法显示价格。');
     }
 
     function recalcModels() {
@@ -343,6 +289,13 @@
             alert(error.message);
             return;
         }
+        renderPage();
+    }
+
+    async function logoutFrontend() {
+        let client = getSupabaseClient();
+        if (client) await client.auth.signOut();
+        models = [];
         renderPage();
     }
 
