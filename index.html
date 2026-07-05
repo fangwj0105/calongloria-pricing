@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calon Gloria 印尼产品价格</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
+        .settings { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; padding: 12px; background: #f8f9fa; border: 1px solid #e5e5ea; border-radius: 8px; }
+        .field { display: flex; align-items: center; gap: 8px; }
+        label { font-weight: 700; font-size: 0.88em; color: #555; }
+        input { width: 140px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; text-align: right; font-size: 0.95em; }
+        button, .back-link { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.88em; text-decoration: none; display: inline-block; }
+        button { background: #0055b3; color: white; }
+        button:hover { background: #00449e; }
+        .back-link { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
+        .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .table-responsive { overflow-x: auto; }
+        .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
+        .market-price-table th { background: #eef7ff; color: #1d1d1f; padding: 10px 8px; border: 1px solid #d8e4f2; text-align: center; }
+        .market-price-table td { padding: 9px 8px; border: 1px solid #e5e5ea; text-align: right; white-space: nowrap; }
+        .market-price-table td:first-child { text-align: left; font-weight: 700; }
+        .dealer-col { background: #f7fff5; color: #1f6f35; }
+        .empty { padding: 24px; background: #fff8f0; border: 1px solid #f2d6ad; border-radius: 8px; color: #7a4a00; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Calon Gloria 印尼产品价格</h1>
+    <div class="settings">
+        <div class="field">
+            <label for="rate">IDR/RMB 汇率</label>
+            <input type="number" id="rate" value="2650" oninput="saveSettingsAndRender()">
+        </div>
+        <div class="field">
+            <label for="ppnRate">PPN 增值税率 (%)</label>
+            <input type="number" id="ppnRate" value="11" oninput="saveSettingsAndRender()">
+        </div>
+        <button onclick="renderPage()">刷新后台数据</button>
+        <button onclick="exportMarketPricesPdf()">导出 PDF 表格</button>
+        <a class="back-link" href="admin.html">进入后台</a>
+    </div>
+    <div id="price-output"></div>
+</div>
+
+<script>
+    const PRICING_MODELS_KEY = 'indonesiaPricingModels';
+    const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
+    const DEFAULT_MODELS = [
+        {
+                "id": 1,
+                "name": "T3BS",
+                "cost": 1890.84,
+                "compPrice": 20800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 2,
+                "name": "T5BS",
+                "cost": 2517.69,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 22,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 3,
+                "name": "T9.8BL",
+                "cost": 4151.62,
+                "compPrice": 26000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 4,
+                "name": "T15BS",
+                "cost": 4922.34,
+                "compPrice": 32800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 5,
+                "name": "T15BL",
+                "cost": 4930.56,
+                "compPrice": 32800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 38,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 6,
+                "name": "T15DBL",
+                "cost": 5069.29,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 7,
+                "name": "T20BS",
+                "cost": 5734.17,
+                "compPrice": 42100000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 10,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 8,
+                "name": "T20BL",
+                "cost": 5734.17,
+                "compPrice": 42100000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 28,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 9,
+                "name": "T30BS",
+                "cost": 8202.53,
+                "compPrice": 45000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 10,
+                "name": "T30BL",
+                "cost": 8202.53,
+                "compPrice": 45000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 6,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 11,
+                "name": "T40BS",
+                "cost": 9317.51,
+                "compPrice": 55900000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 12,
+                "name": "T40BL",
+                "cost": 9317.51,
+                "compPrice": 55900000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 20,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "benchmark",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 13,
+                "name": "F6BS",
+                "cost": 3317.19,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 3,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 14,
+                "name": "F20BL",
+                "cost": 7929.18,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 15,
+                "name": "F60FWTL",
+                "cost": 23951.97,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 3,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        },
+        {
+                "id": 16,
+                "name": "F60BWTL",
+                "cost": 23039.44,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 1,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel",
+                "pricingMethod": "margin",
+                "targetMarginRate": 50
+        }
+];
+    let models = [];
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatRmb(value) {
+        return `¥${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+    }
+
+    function formatIdr(value) {
+        return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+    }
+
+    function loadSettings() {
+        try {
+            let saved = JSON.parse(localStorage.getItem(MARKET_SETTINGS_KEY) || '{}');
+            document.getElementById('rate').value = parseFloat(saved.rate) || 2650;
+            document.getElementById('ppnRate').value = parseFloat(saved.ppnRate) || 11;
+        } catch (error) {
+            document.getElementById('rate').value = 2650;
+            document.getElementById('ppnRate').value = 11;
+        }
+    }
+
+    function getSettings() {
+        return {
+            rate: parseFloat(document.getElementById('rate').value) || 2650,
+            ppnRate: parseFloat(document.getElementById('ppnRate').value) || 11
+        };
+    }
+
+    function saveSettingsAndRender() {
+        let settings = getSettings();
+        localStorage.setItem(MARKET_SETTINGS_KEY, JSON.stringify(settings));
+        renderPrices();
+    }
+
+    function cloneDefaultModels() {
+        return DEFAULT_MODELS.map(model => ({...model}));
+    }
+
+    function loadModels() {
+        try {
+            models = JSON.parse(localStorage.getItem(PRICING_MODELS_KEY) || '[]');
+        } catch (error) {
+            models = [];
+        }
+        if (!Array.isArray(models) || !models.length) {
+            models = cloneDefaultModels();
+        }
+    }
+
+    function recalcModels(rate) {
+        models.forEach(m => {
+            m.compPriceRmb = (parseFloat(m.compPrice) || 0) / rate;
+            if (!m.pricingMethod) m.pricingMethod = (parseFloat(m.compPrice) || 0) > 0 ? 'benchmark' : 'margin';
+            if (m.dealerDiscount === undefined) m.dealerDiscount = 85;
+            if (m.commissionRate === undefined) m.commissionRate = 5;
+            if (m.targetMarginRate === undefined) m.targetMarginRate = 50;
+
+            if (m.pricingMethod === 'margin') {
+                let discountRate = (parseFloat(m.dealerDiscount) || 85) / 100;
+                let commissionRate = (parseFloat(m.commissionRate) || 0) / 100;
+                let targetMarginRate = (parseFloat(m.targetMarginRate) || 0) / 100;
+                let denominator = 1 - commissionRate - targetMarginRate;
+                m.dealerPrice = denominator > 0 ? (parseFloat(m.cost) || 0) / denominator : 0;
+                m.ourPrice = discountRate > 0 ? m.dealerPrice / discountRate : 0;
+            } else {
+                m.ourPrice = m.compPriceRmb * ((parseFloat(m.priceRatio) || 0) / 100);
+                m.dealerPrice = m.ourPrice * ((parseFloat(m.dealerDiscount) || 0) / 100);
+            }
+        });
+    }
+
+    function buildMarketPriceTableHtml(rate, ppnRate, forPrint = false) {
+        if (!models.length) {
+            return '<div class="empty">暂无价格数据。</div>';
+        }
+        let title = `各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)`;
+        let rowsHtml = models.map(m => {
+            let taxRate = ppnRate / 100;
+            let retailRmbTax = m.ourPrice * (1 + taxRate);
+            let retailIdrTax = retailRmbTax * rate;
+            let dealerRmbTax = m.dealerPrice * (1 + taxRate);
+            let dealerIdrTax = dealerRmbTax * rate;
+            return `<tr>
+                <td>${escapeHtml(m.name)}</td>
+                <td>${formatRmb(retailRmbTax)}</td>
+                <td>${formatIdr(retailIdrTax)}</td>
+                <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
+                <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <div class="market-price-header">
+                <strong>${title}</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="market-price-table">
+                    <thead>
+                        <tr>
+                            <th>型号规格</th>
+                            <th>零售税后价 RMB</th>
+                            <th>零售税后价 IDR</th>
+                            <th>代理商税后价 RMB</th>
+                            <th>代理商税后价 IDR</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>`;
+    }
+
+    function renderPrices() {
+        let settings = getSettings();
+        recalcModels(settings.rate);
+        document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(settings.rate, settings.ppnRate);
+    }
+
+    function renderPage() {
+        loadSettings();
+        loadModels();
+        renderPrices();
+    }
+
+    function exportMarketPricesPdf() {
+        renderPrices();
+        let settings = getSettings();
+        let printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('浏览器阻止了导出窗口，请允许弹窗后重试。');
+            return;
+        }
+        printWindow.document.write(`<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <title>印尼市场价格表</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; padding: 24px; color: #1d1d1f; }
+        h1 { font-size: 18px; margin: 0 0 6px; color: #0055b3; }
+        .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+        .market-price-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .market-price-table th { background: #eef7ff; padding: 8px; border: 1px solid #b8cbe0; text-align: center; }
+        .market-price-table td { padding: 7px; border: 1px solid #d7d7d7; text-align: right; white-space: nowrap; }
+        .market-price-table td:first-child { text-align: left; font-weight: 700; }
+        .dealer-col { background: #f7fff5; }
+        @page { size: A4 landscape; margin: 12mm; }
+    </style>
+</head>
+<body>
+    <h1>印尼产品价格表</h1>
+    <div class="meta">汇率: ${formatIdr(settings.rate)} / RMB 1 | PPN: ${settings.ppnRate.toFixed(0)}%</div>
+    ${buildMarketPriceTableHtml(settings.rate, settings.ppnRate, true)}
+</body>
+</html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 300);
+    }
+
+    renderPage();
+</script>
+</body>
+</html>

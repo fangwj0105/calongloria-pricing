@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>印尼全链路税务与年度经营计划模拟系统</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background-color: #f5f5f7; color: #1d1d1f; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: #0055b3; font-size: 1.3em; border-bottom: 2px solid #f0f0f5; padding-bottom: 10px; text-align: center; }
+        
+        /* Tab Styles */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #e5e5ea; }
+        .tab-btn { flex: 1; padding: 12px; text-align: center; background: none; border: none; font-size: 0.95em; font-weight: 600; color: #8e8e93; cursor: pointer; transition: all 0.2s; }
+        .tab-btn.active { color: #0055b3; border-bottom: 3px solid #0055b3; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .section-title { font-weight: 700; color: #333; margin: 15px 0 10px 0; font-size: 0.95em; background: #f0f0f5; padding: 6px 10px; border-radius: 6px; }
+        .input-group { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; max-width: 500px; }
+        label { font-weight: 600; font-size: 0.85em; color: #555; flex: 1; padding-right: 10px; }
+        .input-group input { width: 35%; padding: 8px; border: 1px solid #d2d2d7; border-radius: 8px; box-sizing: border-box; font-size: 0.95em; text-align: right; }
+        
+        /* Dynamic Table Styles */
+        .table-responsive { overflow-x: auto; }
+        .mix-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; min-width: 1350px; }
+        .mix-table th { background: #f5f5f7; color: #1d1d1f; text-align: center; padding: 10px 6px; border: 1px solid #e5e5ea; font-weight: 600; }
+        .mix-table td { padding: 6px; border: 1px solid #e5e5ea; text-align: center; vertical-align: middle; }
+        .mix-table input { width: 100%; padding: 6px; text-align: right; border-radius: 4px; border: 1px solid #d2d2d7; box-sizing: border-box; }
+        .mix-table input:disabled { background: #f1f1f3; color: #999; cursor: not-allowed; }
+        .mix-table select { width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #d2d2d7; box-sizing: border-box; background: white; }
+        .mix-table input[type="text"] { text-align: left; }
+
+        .add-btn { margin-top: 12px; padding: 8px 16px; background: #eef7ff; color: #0055b3; border: 1px dashed #0055b3; border-radius: 6px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .add-btn:hover { background: #ddebff; }
+        .del-btn { color: #d64045; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 1.1em; padding: 4px; }
+
+        .result-box { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e5e5ea; border-left: 5px solid #0055b3; }
+        .result-item { margin-bottom: 10px; font-size: 0.95em; display: flex; justify-content: space-between; }
+        .highlight { font-weight: 700; color: #d64045; }
+        .success-highlight { font-weight: 700; color: #2e7d32; }
+        .tax-note { font-size: 0.8em; color: #007700; margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px; line-height: 1.4; }
+        .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .export-btn { padding: 8px 14px; background: #0055b3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.85em; }
+        .export-btn:hover { background: #00449e; }
+        .front-link { display: inline-block; margin-top: 12px; padding: 9px 16px; background: #f7fff5; color: #1f6f35; border: 1px solid #b9dfbd; border-radius: 6px; text-decoration: none; font-weight: 700; }
+        .front-link:hover { background: #eaf8e8; }
+        .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.86em; }
+        .market-price-table th { background: #eef7ff; color: #1d1d1f; padding: 9px 8px; border: 1px solid #d8e4f2; text-align: center; }
+        .market-price-table td { padding: 8px; border: 1px solid #e5e5ea; text-align: right; white-space: nowrap; }
+        .market-price-table td:first-child { text-align: left; font-weight: 700; }
+        .market-price-table .dealer-col { background: #f7fff5; color: #1f6f35; }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>📊 印尼产品定价系统 - 成本数据已接入</h2>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pricing-tab', this)">模组一：竞品比例定价与代理价毛利率</button>
+        <button class="tab-btn" onclick="switchTab('standard-tab', this)">模组二：固定成本反推年度销量目标</button>
+    </div>
+
+    <!-- TAB 1: PRODUCT PRICING AND UNIT MARGIN MATRIX -->
+    <div id="pricing-tab" class="tab-content active">
+        <div class="section-title">1. 全系机型动态定价矩阵 (RMB)</div>
+        <div class="table-responsive">
+            <table class="mix-table">
+                <thead>
+                    <tr>
+                        <th style="width: 11%;">型号规格</th>
+                        <th style="width: 10%;">定价方式</th>
+                        <th style="width: 9%;">到岸纯成本<br>(RMB)</th>
+                        <th style="width: 10%;">竞品价格<br>(IDR)</th>
+                        <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品折算<br>(RMB)</th>
+                        <th style="width: 8%;">定价比例<br>(%)</th>
+                        <th style="width: 8%; background:#fff8f0; color:#9a5b00;">倒推目标<br>毛利率(%)</th>
+                        <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
+                        <th style="width: 8%; background:#f7fff5; color:#2e7d32;">代理折扣<br>(%)</th>
+                        <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理价<br>(RMB)</th>
+                        <th style="width: 8%;">佣金比例<br>(%)</th>
+                        <th style="width: 10%; background:#fff0f0; color:#d64045;">实际毛利率<br>(按代理价)</th>
+                        <th style="width: 4%;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="pricing-tbody">
+                    <!-- 动态生成 -->
+                </tbody>
+            </table>
+        </div>
+        <button class="add-btn" onclick="addModel()">+ 新增产品型号</button>
+        
+        <div class="section-title" style="margin-top: 25px;">2. 前端市场价格页</div>
+        <a class="front-link" href="index.html" target="_blank">打开线上前端价格页</a>
+
+        <div class="result-box" id="pricing-out"></div>
+    </div>
+
+    <!-- TAB 2: ANNUAL BUSINESS PLAN & SCENARIO SIMULATION -->
+    <div id="standard-tab" class="tab-content">
+        <div class="section-title">1. 年度目标设定 (RMB)</div>
+        <div class="input-group">
+            <label>年度固定成本总额 (RMB):</label>
+            <input type="number" id="stdFixedCost" value="200000" oninput="calcAll()">
+        </div>
+        <div class="input-group">
+            <label>年度目标利润 (RMB):</label>
+            <input type="number" id="targetProfit" value="0" oninput="calcAll()">
+        </div>
+
+        <div class="section-title">2. 产品组合比例与销量目标反推</div>
+        <div class="table-responsive">
+            <table class="mix-table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">产品型号</th>
+                        <th style="width: 16%;">代理价<br>(RMB)</th>
+                        <th style="width: 16%;">实际毛利率<br>(按代理价)</th>
+                        <th style="width: 16%;">单台毛利<br>(RMB)</th>
+                        <th style="width: 16%;">销售组合<br>(%)</th>
+                        <th style="width: 16%;">年度目标销量<br>(台)</th>
+                    </tr>
+                </thead>
+                <tbody id="standard-tbody">
+                    <!-- 动态生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">3. 固定成本覆盖与年度销量目标</div>
+        <div class="result-box" id="standard-out"></div>
+    </div>
+</div>
+
+<script>
+    const PRICING_MODELS_KEY = 'indonesiaPricingModels';
+    const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
+
+    function getMarketSettings() {
+        try {
+            let saved = JSON.parse(localStorage.getItem(MARKET_SETTINGS_KEY) || '{}');
+            return {
+                rate: parseFloat(saved.rate) || 2650,
+                ppnRate: parseFloat(saved.ppnRate) || 11
+            };
+        } catch (error) {
+            return { rate: 2650, ppnRate: 11 };
+        }
+    }
+
+    function savePricingModels() {
+        localStorage.setItem(PRICING_MODELS_KEY, JSON.stringify(models));
+    }
+
+    // Tab 切换控制
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // 全局状态管理：所有动态机型的数据
+    let nextId = 17;
+    let models = [
+        {
+                "id": 1,
+                "name": "T3BS",
+                "cost": 1890.84,
+                "compPrice": 20800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 2,
+                "name": "T5BS",
+                "cost": 2517.69,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 22,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 3,
+                "name": "T9.8BL",
+                "cost": 4151.62,
+                "compPrice": 26000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 4,
+                "name": "T15BS",
+                "cost": 4922.34,
+                "compPrice": 32800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 5,
+                "name": "T15BL",
+                "cost": 4930.56,
+                "compPrice": 32800000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 38,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 6,
+                "name": "T15DBL",
+                "cost": 5069.29,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 5,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 7,
+                "name": "T20BS",
+                "cost": 5734.17,
+                "compPrice": 42100000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 10,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 8,
+                "name": "T20BL",
+                "cost": 5734.17,
+                "compPrice": 42100000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 28,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 9,
+                "name": "T30BS",
+                "cost": 8202.53,
+                "compPrice": 45000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 10,
+                "name": "T30BL",
+                "cost": 8202.53,
+                "compPrice": 45000000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 6,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 11,
+                "name": "T40BS",
+                "cost": 9317.51,
+                "compPrice": 55900000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 12,
+                "name": "T40BL",
+                "cost": 9317.51,
+                "compPrice": 55900000,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 20,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 13,
+                "name": "F6BS",
+                "cost": 3317.19,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 3,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 14,
+                "name": "F20BL",
+                "cost": 7929.18,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 4,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 15,
+                "name": "F60FWTL",
+                "cost": 23951.97,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 3,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        },
+        {
+                "id": 16,
+                "name": "F60BWTL",
+                "cost": 23039.44,
+                "compPrice": 0,
+                "priceRatio": 85,
+                "dealerDiscount": 85,
+                "commissionRate": 5,
+                "targetQty": 1,
+                "source": "landed_unit_ex_tax_avg_rmb from Excel"
+        }
+];
+
+    // 初始化渲染 DOM 结构
+    function renderRows() {
+        let pTbody = document.getElementById('pricing-tbody');
+        let sTbody = document.getElementById('standard-tbody');
+        pTbody.innerHTML = '';
+        sTbody.innerHTML = '';
+        let totalSeedQty = models.reduce((sum, x) => sum + (parseFloat(x.targetQty) || 0), 0);
+
+        models.forEach(m => {
+            if (m.pricingMethod === undefined) {
+                m.pricingMethod = (parseFloat(m.compPrice) || 0) > 0 ? 'benchmark' : 'margin';
+            }
+            if (m.targetMarginRate === undefined) m.targetMarginRate = 50;
+            if (m.pricingMethod === 'margin' && m.dealerDiscount === 95) m.dealerDiscount = 85;
+            if (m.mixShare === undefined) {
+                m.mixShare = totalSeedQty > 0 ? ((parseFloat(m.targetQty) || 0) / totalSeedQty) * 100 : 0;
+            }
+            // 渲染 模组一 表格行
+            let ptr = document.createElement('tr');
+            ptr.innerHTML = `
+                <td><input type="text" value="${m.name}" oninput="updateM(${m.id}, 'name', this.value)"></td>
+                <td>
+                    <select onchange="updateM(${m.id}, 'pricingMethod', this.value)">
+                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>竞品对标法</option>
+                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>毛利率倒推法</option>
+                    </select>
+                </td>
+                <td><input type="number" value="${m.cost}" oninput="updateM(${m.id}, 'cost', this.value)"></td>
+                <td><input type="number" value="${m.compPrice}" placeholder="Rp" oninput="updateM(${m.id}, 'compPrice', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'} title="${m.pricingMethod === 'benchmark' ? '用于按竞品价格对标定价' : '毛利率倒推法不使用竞品价格'}"></td>
+                <td style="background:#f7fbff;"><span id="calc-comp-rmb-${m.id}" style="font-weight:700; color:#0055b3; font-size:1.05em;">0</span></td>
+                <td><input type="number" value="${m.priceRatio}" oninput="updateM(${m.id}, 'priceRatio', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'} title="${m.pricingMethod === 'benchmark' ? '用于按竞品价格比例定价' : '毛利率倒推法不使用定价比例'}"></td>
+                <td style="background:#fff8f0;"><input type="number" value="${m.targetMarginRate ?? 50}" step="0.1" oninput="updateM(${m.id}, 'targetMarginRate', this.value)" ${m.pricingMethod === 'margin' ? '' : 'disabled'} title="${m.pricingMethod === 'margin' ? '用于按目标毛利率反推本品定价' : '竞品对标法不使用该输入'}"></td>
+                <td style="background:#eef7ff;"><span id="calc-price-${m.id}" style="font-weight:700; color:#0055b3; font-size:1.05em;">0</span></td>
+                <td style="background:#f7fff5;"><input type="number" value="${m.dealerDiscount ?? (85)}" step="0.1" oninput="updateM(${m.id}, 'dealerDiscount', this.value)"></td>
+                <td style="background:#f7fff5;"><span id="calc-dealer-price-${m.id}" style="font-weight:700; color:#2e7d32; font-size:1.05em;">0</span></td>
+                <td><input type="number" value="${m.commissionRate ?? 5}" step="0.1" oninput="updateM(${m.id}, 'commissionRate', this.value)"></td>
+                <td style="background:#fff0f0;"><span id="calc-margin-${m.id}" style="font-weight:700; color:#d64045; font-size:1.05em;">0</span></td>
+                <td><button class="del-btn" onclick="delM(${m.id})" title="删除此行">✖</button></td>
+            `;
+            pTbody.appendChild(ptr);
+
+            // 渲染 模组二 表格行
+            let str = document.createElement('tr');
+            str.innerHTML = `
+                <td style="text-align:left; padding-left:15px;"><b id="std-name-${m.id}">${m.name}</b></td>
+                <td style="background:#f7fff5;"><span id="std-dealer-price-${m.id}" style="font-weight:700; color:#2e7d32;">0</span></td>
+                <td style="background:#f9f9f9;"><span id="std-margin-${m.id}" style="font-weight:700; color:#d64045;">0</span></td>
+                <td style="background:#fff8f8;"><span id="std-margin-amount-${m.id}" style="font-weight:700; color:#d64045;">0</span></td>
+                <td><input type="number" value="${m.mixShare.toFixed(1)}" step="0.1" oninput="updateM(${m.id}, 'mixShare', this.value)"></td>
+                <td style="background:#eef7ff;"><span id="std-target-qty-${m.id}" style="font-weight:700; color:#0055b3;">0</span></td>
+            `;
+            sTbody.appendChild(str);
+        });
+
+        // 渲染完 DOM 后计算一次结果
+        calcAll();
+    }
+
+    // 状态更新 (不重绘整个 DOM，避免失去焦点，只更新状态并触发计算)
+    function updateM(id, field, val) {
+        let m = models.find(x => x.id === id);
+        if(m) {
+            m[field] = field === 'name' ? val : (parseFloat(val) || 0);
+            if(field === 'pricingMethod') {
+                m.pricingMethod = val;
+                if(val === 'margin') {
+                    m.dealerDiscount = 85;
+                    if(m.targetMarginRate === undefined || m.targetMarginRate === 20) m.targetMarginRate = 50;
+                }
+                renderRows();
+                return;
+            }
+            // 同步修改模组二的名字展示
+            if(field === 'name') {
+                let nameEl = document.getElementById(`std-name-${id}`);
+                if(nameEl) nameEl.innerText = val;
+            }
+            calcAll();
+        }
+    }
+
+    // 新增机型
+    function addModel() {
+        models.push({ 
+            id: nextId++, 
+            name: "新型号", 
+            cost: 0, 
+            compPrice: 0, 
+            pricingMethod: "margin",
+            priceRatio: 85, 
+            targetMarginRate: 50,
+            dealerDiscount: 85,
+            commissionRate: 5,
+            mixShare: 0,
+            targetQty: 0 
+        });
+        renderRows();
+    }
+
+    // 删除机型
+    function delM(id) {
+        if(models.length <= 1) {
+            alert("至少保留一款机型！");
+            return;
+        }
+        models = models.filter(x => x.id !== id);
+        renderRows();
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatRmb(value) {
+        return `¥${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+    }
+
+    function formatIdr(value) {
+        return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+    }
+
+    function buildMarketPriceTableHtml(rate, ppnRate, forPrint = false) {
+        let title = `各机型印尼市场价格表 (含${(ppnRate * 100).toFixed(0)}%增值税 PPN)`;
+        let rowsHtml = models.map(m => {
+            let retailRmbTax = m.ourPrice * (1 + ppnRate);
+            let retailIdrTax = retailRmbTax * rate;
+            let dealerRmbTax = m.dealerPrice * (1 + ppnRate);
+            let dealerIdrTax = dealerRmbTax * rate;
+            return `<tr>
+                <td>${escapeHtml(m.name)}</td>
+                <td>${formatRmb(retailRmbTax)}</td>
+                <td>${formatIdr(retailIdrTax)}</td>
+                <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
+                <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <div class="market-price-header">
+                <strong>${title}</strong>
+                ${forPrint ? '' : '<button class="export-btn" onclick="exportMarketPricesPdf()">导出 PDF 表格</button>'}
+            </div>
+            <div class="table-responsive">
+                <table class="market-price-table">
+                    <thead>
+                        <tr>
+                            <th>型号规格</th>
+                            <th>零售税后价 RMB</th>
+                            <th>零售税后价 IDR</th>
+                            <th>代理商税后价 RMB</th>
+                            <th>代理商税后价 IDR</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>`;
+    }
+
+    function exportMarketPricesPdf() {
+        calcAll();
+        let settings = getMarketSettings();
+        let rate = settings.rate;
+        let ppnRate = settings.ppnRate / 100;
+        let printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('浏览器阻止了导出窗口，请允许弹窗后重试。');
+            return;
+        }
+        printWindow.document.write(`<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <title>印尼市场价格表</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; padding: 24px; color: #1d1d1f; }
+        h1 { font-size: 18px; margin: 0 0 6px; color: #0055b3; }
+        .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+        .market-price-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .market-price-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .market-price-table th { background: #eef7ff; padding: 8px; border: 1px solid #b8cbe0; text-align: center; }
+        .market-price-table td { padding: 7px; border: 1px solid #d7d7d7; text-align: right; white-space: nowrap; }
+        .market-price-table td:first-child { text-align: left; font-weight: 700; }
+        .dealer-col { background: #f7fff5; }
+        @page { size: A4 landscape; margin: 12mm; }
+    </style>
+</head>
+<body>
+    <h1>印尼产品价格表</h1>
+    <div class="meta">汇率: ${formatIdr(rate)} / RMB 1 | PPN: ${(ppnRate * 100).toFixed(0)}%</div>
+    ${buildMarketPriceTableHtml(rate, ppnRate, true)}
+</body>
+</html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 300);
+    }
+
+    // 核心大盘精算：依据比例动态计算售价及费用
+    function calcAll() {
+        let settings = getMarketSettings();
+        let rate = settings.rate;
+        let ppnRate = settings.ppnRate / 100;
+        let fc = parseFloat(document.getElementById('stdFixedCost').value) || 0;
+        let targetProfit = parseFloat(document.getElementById('targetProfit').value) || 0;
+
+        let totalContribution = 0;
+        let mixTotal = 0;
+        let weightedDealerPrice = 0;
+        let weightedMargin = 0;
+        let weightedMarginRate = 0;
+        let targetTotalQty = 0;
+        let pricingHtml = '';
+
+        models.forEach(m => {
+            // 1. 按定价方式计算本品定价
+            m.compPriceRmb = m.compPrice / rate;
+            if (m.pricingMethod === undefined) {
+                m.pricingMethod = (parseFloat(m.compPrice) || 0) > 0 ? 'benchmark' : 'margin';
+            }
+            if (m.dealerDiscount === undefined) m.dealerDiscount = 85;
+            if (m.commissionRate === undefined) m.commissionRate = 5;
+            if (m.targetMarginRate === undefined) m.targetMarginRate = 50;
+
+            if (m.pricingMethod === 'margin') {
+                let dealerDiscountRate = (m.dealerDiscount || 85) / 100;
+                let commissionRate = (m.commissionRate || 0) / 100;
+                let targetMarginRate = (m.targetMarginRate || 0) / 100;
+                let denominator = 1 - commissionRate - targetMarginRate;
+                m.dealerPrice = denominator > 0 ? m.cost / denominator : 0;
+                m.ourPrice = dealerDiscountRate > 0 ? m.dealerPrice / dealerDiscountRate : 0;
+            } else {
+                m.ourPrice = m.compPriceRmb * (m.priceRatio / 100);
+                m.dealerPrice = m.ourPrice * (m.dealerDiscount / 100);
+            }
+
+            // 2. 佣金以代理价为基数
+            m.commissionCost = m.dealerPrice * (m.commissionRate / 100);
+            
+            // 3. 单台毛利金额与毛利率均以代理价为收入基准，并扣除代理价口径佣金
+            m.margin = m.dealerPrice - m.cost - m.commissionCost;
+            m.marginRate = m.dealerPrice > 0 ? (m.margin / m.dealerPrice) * 100 : 0;
+
+            // 4. 更新模组一 DOM
+            let compRmbSpan = document.getElementById(`calc-comp-rmb-${m.id}`);
+            let pSpan = document.getElementById(`calc-price-${m.id}`);
+            let dealerPriceSpan = document.getElementById(`calc-dealer-price-${m.id}`);
+            let mSpan = document.getElementById(`calc-margin-${m.id}`);
+            if(compRmbSpan) compRmbSpan.innerText = `¥${m.compPriceRmb.toFixed(0)}`;
+            if(pSpan) pSpan.innerText = `¥${m.ourPrice.toFixed(0)}`;
+            if(dealerPriceSpan) dealerPriceSpan.innerText = `¥${m.dealerPrice.toFixed(0)}`;
+            if(mSpan) mSpan.innerText = `${m.marginRate.toFixed(1)}%`;
+
+            // 5. 更新模组二 DOM
+            let stdDealerPriceSpan = document.getElementById(`std-dealer-price-${m.id}`);
+            let stdMSpan = document.getElementById(`std-margin-${m.id}`);
+            let stdMarginAmountSpan = document.getElementById(`std-margin-amount-${m.id}`);
+            if(stdDealerPriceSpan) stdDealerPriceSpan.innerText = `¥${m.dealerPrice.toFixed(0)}`;
+            if(stdMSpan) stdMSpan.innerText = `${m.marginRate.toFixed(1)}%`;
+            if(stdMarginAmountSpan) stdMarginAmountSpan.innerText = `¥${m.margin.toFixed(0)}`;
+
+            mixTotal += Math.max(0, parseFloat(m.mixShare) || 0);
+        });
+
+        if (mixTotal > 0) {
+            models.forEach(m => {
+                let weight = Math.max(0, parseFloat(m.mixShare) || 0) / mixTotal;
+                weightedDealerPrice += m.dealerPrice * weight;
+                weightedMargin += m.margin * weight;
+            });
+            weightedMarginRate = weightedDealerPrice > 0 ? (weightedMargin / weightedDealerPrice) * 100 : 0;
+        }
+
+        let requiredContribution = Math.max(0, fc + targetProfit);
+        if (weightedMargin > 0) {
+            targetTotalQty = Math.ceil(requiredContribution / weightedMargin);
+            totalContribution = targetTotalQty * weightedMargin;
+        }
+
+        let allocations = models.map(m => {
+            let weight = mixTotal > 0 ? Math.max(0, parseFloat(m.mixShare) || 0) / mixTotal : 0;
+            let rawQty = targetTotalQty * weight;
+            let floorQty = Math.floor(rawQty);
+            return { model: m, qty: floorQty, remainder: rawQty - floorQty };
+        });
+        let assignedQty = allocations.reduce((sum, item) => sum + item.qty, 0);
+        allocations
+            .slice()
+            .sort((a, b) => b.remainder - a.remainder)
+            .slice(0, Math.max(0, targetTotalQty - assignedQty))
+            .forEach(item => item.qty += 1);
+
+        totalContribution = 0;
+        allocations.forEach(item => {
+            let targetQtySpan = document.getElementById(`std-target-qty-${item.model.id}`);
+            if(targetQtySpan) targetQtySpan.innerText = item.qty.toLocaleString(undefined, {maximumFractionDigits:0});
+            totalContribution += item.model.margin * item.qty;
+        });
+
+        pricingHtml += buildMarketPriceTableHtml(rate, ppnRate) +
+            `<hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">` +
+            `<div style="font-size:0.85em; color:#555;">💡 <b>公式推演</b>：【竞品对标法】本品定价 RMB = (竞品价格 IDR ÷ IDR/RMB 汇率) × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 ÷ (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 ÷ 代理折扣。无竞品价产品默认按 85% 代理折扣、50% 倒推目标毛利率计算。<br>【实际毛利率】= [代理价 - 到岸成本 - (代理价 × 佣金比例)] ÷ 代理价。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+        
+        document.getElementById('pricing-out').innerHTML = pricingHtml;
+
+        // ============================================
+        // 模组二：大盘模拟损益预测
+        // ============================================
+        let netProfit = totalContribution - fc;
+        let beProgress = fc > 0 ? (totalContribution / fc) * 100 : 0;
+        let progressColor = weightedMargin > 0 ? '#2e7d32' : '#d64045';
+        let progressStatusText = weightedMargin > 0
+            ? `<span class="success-highlight">✓ 按当前产品组合，预计达成年利润: ¥${netProfit.toLocaleString(undefined, {maximumFractionDigits:0})}</span>` 
+            : `<span class="highlight">✗ 当前组合的加权单台毛利不足，无法反推有效销量目标</span>`;
+
+        // 智能提取最高毛利率与最低毛利率产品提供 What-If 洞察
+        let sortedModels = [...models].filter(m => m.margin > 0).sort((a,b) => b.marginRate - a.marginRate);
+        let whatIfHtml = "";
+        if (sortedModels.length >= 2) {
+            let bestModel = sortedModels[0];
+            let worstModel = sortedModels[sortedModels.length - 1];
+            let dropQty = 5;
+            let loss = dropQty * bestModel.margin;
+            let makeupQty = (loss / worstModel.margin).toFixed(1);
+            
+            whatIfHtml = `<div class="tax-note" style="color: #333; margin-top:15px;">
+                <strong>📋 经营决策推演 (动态 What-If Analysis)：</strong><br>
+                • 您的最高实际毛利率机型是 <b>${bestModel.name}</b>，当前实际毛利率为 <b>${bestModel.marginRate.toFixed(1)}%</b>。如果该机型在印尼意外少卖了 ${dropQty} 台，公司净利润将直接蒸发 <b>¥${loss.toLocaleString(undefined, {maximumFractionDigits:0})}</b>。<br>
+                • 为弥补此利润缺口，印尼团队必须在低毛利率机型 <b>${worstModel.name}</b> 上追加 <b>${makeupQty} 台</b> 的销售量。<br>
+                <em>结论：经营统计以毛利率识别产品质量，年度利润仍以单台毛利金额乘销量衡量固定成本覆盖能力。</em>
+            </div>`;
+        }
+
+        document.getElementById('standard-out').innerHTML = 
+            `<div class="result-item"><span>产品组合比例合计:</span> <span>${mixTotal.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>加权平均代理价:</span> <span>¥${weightedDealerPrice.toLocaleString(undefined, {maximumFractionDigits:0})}</span></div>` +
+            `<div class="result-item"><span>加权平均毛利率:</span> <span>${weightedMarginRate.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>加权平均单台毛利:</span> <span>¥${weightedMargin.toLocaleString(undefined, {maximumFractionDigits:0})}</span></div>` +
+            `<div class="result-item"><span>年度固定成本:</span> <span>¥${fc.toLocaleString(undefined, {maximumFractionDigits:0})}</span></div>` +
+            `<div class="result-item"><span>年度目标利润:</span> <span>¥${targetProfit.toLocaleString(undefined, {maximumFractionDigits:0})}</span></div>` +
+            `<div class="result-item" style="border-top: 1.5px solid #ccc; padding-top:10px;"><span><b>年度目标总销量:</b></span> <span style="font-size:1.1em;"><b>${targetTotalQty.toLocaleString(undefined, {maximumFractionDigits:0})} 台</b></span></div>` +
+            `<div class="result-item"><span>目标达成状态:</span> ${progressStatusText}</div>` +
+            `<div style="background:#e5e5ea; border-radius:8px; height:12px; margin:12px 0; overflow:hidden; position:relative;">` +
+                `<div style="background:${progressColor}; width:${Math.min(100, beProgress).toFixed(1)}%; height:100%; transition: width 0.3s;"></div>` +
+            `</div>` +
+            `<div class="result-item" style="font-size:0.8em; color:#555;"><span>固定成本覆盖率:</span> <b>${beProgress.toFixed(1)}%</b></div>` +
+            whatIfHtml;
+
+        savePricingModels();
+    }
+
+    // 初始化运行
+    renderRows();
+</script>
+</body>
+</html>
