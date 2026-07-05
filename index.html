@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calon Gloria 印尼产品价格</title>
+    <title>Harga Produk Indonesia Calon Gloria / Calon Gloria 印尼产品价格</title>
     <script>
         (function redirectRecoveryLink() {
             let marker = `${window.location.search}${window.location.hash}`;
@@ -15,6 +15,8 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f7; color: #1d1d1f; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
+        .zh { display: block; margin-top: 2px; color: #6e6e73; font-size: 0.86em; font-weight: 500; }
+        th .zh, .market-price-header .zh { font-size: 0.82em; }
         .login-fields { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         label { font-weight: 700; font-size: 0.88em; color: #555; }
         input { width: 140px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; text-align: right; font-size: 0.95em; }
@@ -39,18 +41,18 @@
 </head>
 <body>
 <div class="container">
-    <h1>Calon Gloria 印尼产品价格</h1>
+    <h1>Harga Produk Indonesia Calon Gloria<span class="zh">Calon Gloria 印尼产品价格</span></h1>
     <div id="access-box" class="access-box" hidden>
-        <strong>价格页需要授权账号登录访问</strong>
+        <strong>Akses halaman harga memerlukan akun resmi<span class="zh">价格页需要授权账号登录访问</span></strong>
         <div class="login-fields">
-            <input type="email" id="front-email" placeholder="邮箱">
-            <input type="password" id="front-password" placeholder="密码">
-            <button onclick="loginFrontend()">登录</button>
+            <input type="email" id="front-email" placeholder="Email / 邮箱">
+            <input type="password" id="front-password" placeholder="Kata sandi / 密码">
+            <button onclick="loginFrontend()">Masuk <span class="zh">登录</span></button>
         </div>
     </div>
     <div id="session-bar" class="session-bar" hidden>
         <span id="session-label"></span>
-        <button onclick="logoutFrontend()">退出登录</button>
+        <button onclick="logoutFrontend()">Keluar <span class="zh">退出登录</span></button>
     </div>
     <div id="status" class="status"></div>
     <div id="price-output"></div>
@@ -63,9 +65,21 @@
     const PUBLIC_PRICE_ROWS = [];
     let models = [];
     let marketSettings = { rate: 2650, ppnRate: 11 };
+    const TEXT = {
+        loginWithAuthorizedAccount: 'Silakan masuk dengan email yang sudah diaktifkan di manajemen akun backend.<span class="zh">请使用后台账号管理中已启用的邮箱登录。</span>',
+        loginToView: 'Silakan masuk untuk melihat daftar harga.<span class="zh">请登录后查看价格表。</span>',
+        loadedPrices: 'Harga publikasi terbaru berhasil dimuat.<span class="zh">已读取远程发布价格。</span>',
+        remoteFailed: 'Gagal memuat harga jarak jauh. Periksa izin akun dan koneksi jaringan.<span class="zh">远程价格读取失败，请确认账号权限和网络状态。</span>',
+        noRemoteService: 'Layanan login jarak jauh belum dikonfigurasi, harga tidak dapat ditampilkan.<span class="zh">尚未配置远程登录服务，无法显示价格。</span>',
+        noData: 'Belum ada data harga.<span class="zh">暂无价格数据。</span>',
+        unauthorized: 'Akun ini belum diaktifkan di manajemen akun backend, sehingga tidak dapat melihat harga.<span class="zh">当前账号未在后台账号权限中启用，不能查看前端价格。</span>',
+        loginNotConfigured: 'Layanan login jarak jauh belum dikonfigurasi. / 尚未配置远程登录服务。',
+        currentAccount: 'Akun saat ini / 当前账号',
+        unauthorizedLabel: 'Belum diotorisasi / 未授权'
+    };
 
     function setStatus(message) {
-        document.getElementById('status').textContent = message || '';
+        document.getElementById('status').innerHTML = message || '';
     }
 
     function getSupabaseClient() {
@@ -123,7 +137,7 @@
         if (!session) {
             accessBox.hidden = false;
             sessionBar.hidden = true;
-            setStatus('请使用后台账号管理中已启用的邮箱登录。');
+            setStatus(TEXT.loginWithAuthorizedAccount);
             return false;
         }
         let { data: profile, error } = await client
@@ -135,8 +149,8 @@
         let allowed = !!profile?.is_active && ['owner', 'viewer'].includes(profile.role);
         accessBox.hidden = allowed;
         sessionBar.hidden = false;
-        sessionLabel.textContent = `${session.user.email || profile?.email || '当前账号'} / ${allowed ? profile.role : '未授权'}`;
-        if (!allowed) setStatus('当前账号未在后台账号权限中启用，不能查看前端价格。');
+        sessionLabel.textContent = `${session.user.email || profile?.email || TEXT.currentAccount} / ${allowed ? profile.role : TEXT.unauthorizedLabel}`;
+        if (!allowed) setStatus(TEXT.unauthorized);
         return allowed;
     }
 
@@ -176,24 +190,24 @@
                 let allowed = await ensureFrontendAccess(client);
                 if (!allowed) {
                     models = [];
-                    setStatus('请登录后查看价格表。');
+                    setStatus(TEXT.loginToView);
                     return;
                 }
                 await loadMarketSettings(client);
                 let remoteRows = await loadRemoteModels(client);
                 if (remoteRows.length) {
                     models = remoteRows;
-                    setStatus('已读取远程发布价格。');
+                    setStatus(TEXT.loadedPrices);
                     return;
                 }
             } catch (error) {
                 models = [];
-                setStatus(`远程价格读取失败，请确认账号权限和网络状态。${error.message || ''}`);
+                setStatus(`${TEXT.remoteFailed}${error.message ? `<span class="zh">${escapeHtml(error.message)}</span>` : ''}`);
                 return;
             }
         }
         models = clonePublicRows();
-        if (!client) setStatus('尚未配置远程登录服务，无法显示价格。');
+        if (!client) setStatus(TEXT.noRemoteService);
     }
 
     function recalcModels() {
@@ -205,9 +219,9 @@
 
     function buildMarketPriceTableHtml(rate, ppnRate, forPrint = false) {
         if (!models.length) {
-            return '<div class="empty">暂无价格数据。</div>';
+            return `<div class="empty">${TEXT.noData}</div>`;
         }
-        let title = `各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)`;
+        let title = `Daftar Harga Pasar Indonesia per Model (Termasuk PPN ${ppnRate.toFixed(0)}%)<span class="zh">各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)</span>`;
         let rowsHtml = models.map(m => {
             let taxRate = ppnRate / 100;
             let retailRmbTax = m.ourPrice * (1 + taxRate);
@@ -231,11 +245,11 @@
                 <table class="market-price-table">
                     <thead>
                         <tr>
-                            <th>型号规格</th>
-                            <th>零售税后价 RMB</th>
-                            <th>零售税后价 IDR</th>
-                            <th>代理商税后价 RMB</th>
-                            <th>代理商税后价 IDR</th>
+                            <th>Model / Spesifikasi<span class="zh">型号规格</span></th>
+                            <th>Harga Ritel Setelah Pajak RMB<span class="zh">零售税后价 RMB</span></th>
+                            <th>Harga Ritel Setelah Pajak IDR<span class="zh">零售税后价 IDR</span></th>
+                            <th>Harga Dealer Setelah Pajak RMB<span class="zh">代理商税后价 RMB</span></th>
+                            <th>Harga Dealer Setelah Pajak IDR<span class="zh">代理商税后价 IDR</span></th>
                         </tr>
                     </thead>
                     <tbody>${rowsHtml}</tbody>
@@ -256,7 +270,7 @@
     async function loginFrontend() {
         let client = getSupabaseClient();
         if (!client) {
-            alert('尚未配置远程登录服务。');
+            alert(TEXT.loginNotConfigured);
             return;
         }
         let email = document.getElementById('front-email').value.trim();
