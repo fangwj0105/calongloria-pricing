@@ -46,214 +46,86 @@
 <script>
     const PRICING_MODELS_KEY = 'indonesiaPricingModels';
     const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
-    const DEFAULT_MODELS = [
+    const PUBLIC_PRICE_ROWS = [
         {
-                "id": 1,
                 "name": "T3BS",
-                "cost": 1890.84,
-                "compPrice": 20800000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 5,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 6671.7,
+                "dealerRmb": 5670.94
         },
         {
-                "id": 2,
                 "name": "T5BS",
-                "cost": 2517.69,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 22,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 6582.2,
+                "dealerRmb": 5594.87
         },
         {
-                "id": 3,
                 "name": "T9.8BL",
-                "cost": 4151.62,
-                "compPrice": 26000000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 5,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 8339.62,
+                "dealerRmb": 7088.68
         },
         {
-                "id": 4,
                 "name": "T15BS",
-                "cost": 4922.34,
-                "compPrice": 32800000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 5,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 10520.75,
+                "dealerRmb": 8942.64
         },
         {
-                "id": 5,
                 "name": "T15BL",
-                "cost": 4930.56,
-                "compPrice": 32800000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 38,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 10520.75,
+                "dealerRmb": 8942.64
         },
         {
-                "id": 6,
                 "name": "T15DBL",
-                "cost": 5069.29,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 5,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 13253.05,
+                "dealerRmb": 11265.09
         },
         {
-                "id": 7,
                 "name": "T20BS",
-                "cost": 5734.17,
-                "compPrice": 42100000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 10,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 13503.77,
+                "dealerRmb": 11478.21
         },
         {
-                "id": 8,
                 "name": "T20BL",
-                "cost": 5734.17,
-                "compPrice": 42100000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 28,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 13503.77,
+                "dealerRmb": 11478.21
         },
         {
-                "id": 9,
                 "name": "T30BS",
-                "cost": 8202.53,
-                "compPrice": 45000000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 4,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 14433.96,
+                "dealerRmb": 12268.87
         },
         {
-                "id": 10,
                 "name": "T30BL",
-                "cost": 8202.53,
-                "compPrice": 45000000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 6,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 14433.96,
+                "dealerRmb": 12268.87
         },
         {
-                "id": 11,
                 "name": "T40BS",
-                "cost": 9317.51,
-                "compPrice": 55900000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 4,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 17930.19,
+                "dealerRmb": 15240.66
         },
         {
-                "id": 12,
                 "name": "T40BL",
-                "cost": 9317.51,
-                "compPrice": 55900000,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 20,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "benchmark",
-                "targetMarginRate": 50
+                "retailRmb": 17930.19,
+                "dealerRmb": 15240.66
         },
         {
-                "id": 13,
                 "name": "F6BS",
-                "cost": 3317.19,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 3,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 8672.39,
+                "dealerRmb": 7371.53
         },
         {
-                "id": 14,
                 "name": "F20BL",
-                "cost": 7929.18,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 4,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 20729.88,
+                "dealerRmb": 17620.4
         },
         {
-                "id": 15,
                 "name": "F60FWTL",
-                "cost": 23951.97,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 3,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 62619.53,
+                "dealerRmb": 53226.6
         },
         {
-                "id": 16,
                 "name": "F60BWTL",
-                "cost": 23039.44,
-                "compPrice": 0,
-                "priceRatio": 85,
-                "dealerDiscount": 85,
-                "commissionRate": 5,
-                "targetQty": 1,
-                "source": "landed_unit_ex_tax_avg_rmb from Excel",
-                "pricingMethod": "margin",
-                "targetMarginRate": 50
+                "retailRmb": 60233.83,
+                "dealerRmb": 51198.76
         }
 ];
     let models = [];
@@ -299,40 +171,18 @@
         renderPrices();
     }
 
-    function cloneDefaultModels() {
-        return DEFAULT_MODELS.map(model => ({...model}));
+    function clonePublicRows() {
+        return PUBLIC_PRICE_ROWS.map(row => ({...row}));
     }
 
     function loadModels() {
-        try {
-            models = JSON.parse(localStorage.getItem(PRICING_MODELS_KEY) || '[]');
-        } catch (error) {
-            models = [];
-        }
-        if (!Array.isArray(models) || !models.length) {
-            models = cloneDefaultModels();
-        }
+        models = clonePublicRows();
     }
 
-    function recalcModels(rate) {
+    function recalcModels() {
         models.forEach(m => {
-            m.compPriceRmb = (parseFloat(m.compPrice) || 0) / rate;
-            if (!m.pricingMethod) m.pricingMethod = (parseFloat(m.compPrice) || 0) > 0 ? 'benchmark' : 'margin';
-            if (m.dealerDiscount === undefined) m.dealerDiscount = 85;
-            if (m.commissionRate === undefined) m.commissionRate = 5;
-            if (m.targetMarginRate === undefined) m.targetMarginRate = 50;
-
-            if (m.pricingMethod === 'margin') {
-                let discountRate = (parseFloat(m.dealerDiscount) || 85) / 100;
-                let commissionRate = (parseFloat(m.commissionRate) || 0) / 100;
-                let targetMarginRate = (parseFloat(m.targetMarginRate) || 0) / 100;
-                let denominator = 1 - commissionRate - targetMarginRate;
-                m.dealerPrice = denominator > 0 ? (parseFloat(m.cost) || 0) / denominator : 0;
-                m.ourPrice = discountRate > 0 ? m.dealerPrice / discountRate : 0;
-            } else {
-                m.ourPrice = m.compPriceRmb * ((parseFloat(m.priceRatio) || 0) / 100);
-                m.dealerPrice = m.ourPrice * ((parseFloat(m.dealerDiscount) || 0) / 100);
-            }
+            m.ourPrice = parseFloat(m.retailRmb) || 0;
+            m.dealerPrice = parseFloat(m.dealerRmb) || 0;
         });
     }
 
@@ -378,7 +228,7 @@
 
     function renderPrices() {
         let settings = getSettings();
-        recalcModels(settings.rate);
+        recalcModels();
         document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(settings.rate, settings.ppnRate);
     }
 
