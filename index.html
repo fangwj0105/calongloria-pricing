@@ -12,10 +12,9 @@
         .field { display: flex; align-items: center; gap: 8px; }
         label { font-weight: 700; font-size: 0.88em; color: #555; }
         input { width: 140px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; text-align: right; font-size: 0.95em; }
-        button, .back-link { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.88em; text-decoration: none; display: inline-block; }
+        button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.88em; }
         button { background: #0055b3; color: white; }
         button:hover { background: #00449e; }
-        .back-link { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .table-responsive { overflow-x: auto; }
         .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
@@ -38,9 +37,8 @@
             <label for="ppnRate">PPN 增值税率 (%)</label>
             <input type="number" id="ppnRate" value="11" oninput="saveSettingsAndRender()">
         </div>
-        <button onclick="renderPage()">刷新后台数据</button>
+        <button onclick="renderPage()">刷新价格表</button>
         <button onclick="exportMarketPricesPdf()">导出 PDF 表格</button>
-        <a class="back-link" href="admin.html">进入后台</a>
     </div>
     <div id="price-output"></div>
 </div>
