@@ -230,6 +230,7 @@
     let models = [];
     let nextId = 1;
     let marketSettings = { rate: 2650, ppnRate: 11 };
+    const DEFAULT_COMMISSION_RATE = 5;
 
     function setStatus(message, kind = '') {
         let el = document.getElementById('status');
@@ -330,6 +331,11 @@
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    function commissionRateValue(value) {
+        let parsed = Number(value);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_COMMISSION_RATE;
+    }
+
     function normalizeModel(m, index = 0) {
         m.id = Number(m.id || index + 1);
         m.name = m.name || '新型号';
@@ -337,7 +343,7 @@
         m.compPrice = numberValue(m.compPrice);
         m.priceRatio = numberValue(m.priceRatio, 85);
         m.dealerDiscount = numberValue(m.dealerDiscount, 85);
-        m.commissionRate = numberValue(m.commissionRate, 5);
+        m.commissionRate = commissionRateValue(m.commissionRate);
         m.targetMarginRate = numberValue(m.targetMarginRate, 50);
         m.pricingMethod = m.pricingMethod || (m.compPrice > 0 ? 'benchmark' : 'margin');
         if (m.pricingMethod === 'margin' && m.dealerDiscount === 95) m.dealerDiscount = 85;
@@ -349,7 +355,7 @@
         normalizeModel(m);
         let method = m.pricingMethod || (numberValue(m.compPrice) > 0 ? 'benchmark' : 'margin');
         let dealerDiscount = numberValue(m.dealerDiscount, 85) / 100;
-        let commissionRate = numberValue(m.commissionRate, 0) / 100;
+        let commissionRate = commissionRateValue(m.commissionRate) / 100;
         let targetMarginRate = numberValue(m.targetMarginRate, 50) / 100;
         m.compPriceRmb = numberValue(m.compPrice) / numberValue(marketSettings.rate, 2650);
         if (method === 'margin') {
@@ -443,7 +449,7 @@
             priceRatio: 85,
             targetMarginRate: 50,
             dealerDiscount: 85,
-            commissionRate: 5,
+            commissionRate: DEFAULT_COMMISSION_RATE,
             mixShare: 0,
             targetQty: 0
         });
@@ -635,7 +641,7 @@
         if (pricingOut) {
             pricingOut.innerHTML = buildMarketPriceTableHtml(rate, ppnRate) +
                 `<hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">` +
-                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】本品定价 RMB = (竞品价格 IDR / IDR/RMB 汇率) × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【实际毛利率】= [代理价 - 到岸成本 - (代理价 × 佣金比例)] / 代理价。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】本品定价 RMB = (竞品价格 IDR / IDR/RMB 汇率) × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (代理价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
         }
 
         let standardOut = document.getElementById('standard-out');
