@@ -15,8 +15,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f7; color: #1d1d1f; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
-        .settings { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; padding: 12px; background: #f8f9fa; border: 1px solid #e5e5ea; border-radius: 8px; }
-        .field { display: flex; align-items: center; gap: 8px; }
+        .login-fields { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         label { font-weight: 700; font-size: 0.88em; color: #555; }
         input { width: 140px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; text-align: right; font-size: 0.95em; }
         button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.88em; }
@@ -40,21 +39,9 @@
 <body>
 <div class="container">
     <h1>Calon Gloria 印尼产品价格</h1>
-    <div class="settings">
-        <div class="field">
-            <label for="rate">IDR/RMB 汇率</label>
-            <input type="number" id="rate" value="2650" oninput="saveSettingsAndRender()">
-        </div>
-        <div class="field">
-            <label for="ppnRate">PPN 增值税率 (%)</label>
-            <input type="number" id="ppnRate" value="11" oninput="saveSettingsAndRender()">
-        </div>
-        <button onclick="renderPage()">刷新价格表</button>
-        <button onclick="exportMarketPricesPdf()">导出 PDF 表格</button>
-    </div>
     <div id="access-box" class="access-box" hidden>
         <strong>价格页需要授权账号登录访问</strong>
-        <div class="settings" style="margin:12px 0 0; padding:0; border:none; background:transparent;">
+        <div class="login-fields">
             <input type="email" id="front-email" placeholder="邮箱">
             <input type="password" id="front-password" placeholder="密码">
             <button onclick="loginFrontend()">登录</button>
@@ -71,11 +58,10 @@
 <script src="supabase-config.js?v=20260705-access1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-    const PRICING_MODELS_KEY = 'indonesiaPricingModels';
-    const MARKET_SETTINGS_KEY = 'indonesiaPricingMarketSettings';
     let supabaseClient = null;
     const PUBLIC_PRICE_ROWS = [];
     let models = [];
+    let marketSettings = { rate: 2650, ppnRate: 11 };
 
     function setStatus(message) {
         document.getElementById('status').textContent = message || '';
@@ -105,30 +91,6 @@
 
     function formatIdr(value) {
         return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
-    }
-
-    function loadSettings() {
-        try {
-            let saved = JSON.parse(localStorage.getItem(MARKET_SETTINGS_KEY) || '{}');
-            document.getElementById('rate').value = parseFloat(saved.rate) || 2650;
-            document.getElementById('ppnRate').value = parseFloat(saved.ppnRate) || 11;
-        } catch (error) {
-            document.getElementById('rate').value = 2650;
-            document.getElementById('ppnRate').value = 11;
-        }
-    }
-
-    function getSettings() {
-        return {
-            rate: parseFloat(document.getElementById('rate').value) || 2650,
-            ppnRate: parseFloat(document.getElementById('ppnRate').value) || 11
-        };
-    }
-
-    function saveSettingsAndRender() {
-        let settings = getSettings();
-        localStorage.setItem(MARKET_SETTINGS_KEY, JSON.stringify(settings));
-        renderPrices();
     }
 
     function clonePublicRows() {
@@ -191,6 +153,21 @@
         }));
     }
 
+    async function loadMarketSettings(client) {
+        if (!client) return;
+        let { data, error } = await client
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'market_settings')
+            .maybeSingle();
+        if (error) throw error;
+        let value = data?.value || {};
+        marketSettings = {
+            rate: Number(value.rate) || 2650,
+            ppnRate: Number(value.ppnRate) || 11
+        };
+    }
+
     async function loadModels() {
         let client = getSupabaseClient();
         if (client) {
@@ -201,6 +178,7 @@
                     setStatus('请登录后查看价格表。');
                     return;
                 }
+                await loadMarketSettings(client);
                 let remoteRows = await loadRemoteModels(client);
                 if (remoteRows.length) {
                     models = remoteRows;
@@ -265,13 +243,11 @@
     }
 
     function renderPrices() {
-        let settings = getSettings();
         recalcModels();
-        document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(settings.rate, settings.ppnRate);
+        document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(marketSettings.rate, marketSettings.ppnRate);
     }
 
     async function renderPage() {
-        loadSettings();
         await loadModels();
         renderPrices();
     }
@@ -297,42 +273,6 @@
         if (client) await client.auth.signOut();
         models = [];
         renderPage();
-    }
-
-    function exportMarketPricesPdf() {
-        renderPrices();
-        let settings = getSettings();
-        let printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            alert('浏览器阻止了导出窗口，请允许弹窗后重试。');
-            return;
-        }
-        printWindow.document.write(`<!DOCTYPE html>
-<html lang="zh-Hans">
-<head>
-    <meta charset="UTF-8">
-    <title>印尼市场价格表</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; padding: 24px; color: #1d1d1f; }
-        h1 { font-size: 18px; margin: 0 0 6px; color: #0055b3; }
-        .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
-        .market-price-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .market-price-table th { background: #eef7ff; padding: 8px; border: 1px solid #b8cbe0; text-align: center; }
-        .market-price-table td { padding: 7px; border: 1px solid #d7d7d7; text-align: right; white-space: nowrap; }
-        .market-price-table td:first-child { text-align: left; font-weight: 700; }
-        .dealer-col { background: #f7fff5; }
-        @page { size: A4 landscape; margin: 12mm; }
-    </style>
-</head>
-<body>
-    <h1>印尼产品价格表</h1>
-    <div class="meta">汇率: ${formatIdr(settings.rate)} / RMB 1 | PPN: ${settings.ppnRate.toFixed(0)}%</div>
-    ${buildMarketPriceTableHtml(settings.rate, settings.ppnRate, true)}
-</body>
-</html>`);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 300);
     }
 
     renderPage();

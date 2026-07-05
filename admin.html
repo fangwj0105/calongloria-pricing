@@ -17,7 +17,7 @@
         h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
         .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
         .panel { border: 1px solid #e5e5ea; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #fbfbfd; }
-        .login-grid, .account-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+        .login-grid, .account-grid, .settings-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; align-items: end; }
         label { display: block; margin-bottom: 5px; color: #555; font-weight: 700; font-size: 0.84em; }
         input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.92em; }
         input[type="number"] { text-align: right; }
@@ -77,7 +77,7 @@
             <div class="tabs">
                 <button id="tab-pricing" class="active" onclick="switchTab('pricing')">定价模型</button>
                 <button id="tab-accounts" onclick="switchTab('accounts')">账号权限</button>
-                <button id="tab-access" onclick="switchTab('access')">前端访问</button>
+                <button id="tab-access" onclick="switchTab('access')">前端设置</button>
             </div>
 
             <div id="view-pricing">
@@ -149,14 +149,18 @@
 
             <div id="view-access" class="hidden">
                 <div class="panel">
-                    <label for="frontend-mode">前端价格页访问方式</label>
-                    <select id="frontend-mode">
-                        <option value="public">公开访问</option>
-                        <option value="private">需要登录</option>
-                    </select>
-                    <div style="margin-top:12px;">
-                        <button onclick="saveAccessMode()">保存访问设置</button>
+                    <div class="note">前端固定为授权账号登录访问。价格页只展示后台发布价格，汇率和 PPN 在这里维护。</div>
+                </div>
+                <div class="settings-grid panel">
+                    <div>
+                        <label for="market-rate">IDR/RMB 汇率</label>
+                        <input id="market-rate" type="number" value="2650">
                     </div>
+                    <div>
+                        <label for="market-ppn">PPN 增值税率 (%)</label>
+                        <input id="market-ppn" type="number" value="11">
+                    </div>
+                    <button onclick="saveFrontendSettings()">保存前端设置</button>
                 </div>
             </div>
         </div>
@@ -165,7 +169,7 @@
     <div id="status" class="status"></div>
 </div>
 
-<script src="supabase-config.js?v=20260705-reset1"></script>
+<script src="supabase-config.js?v=20260705-display1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
     let client = null;
@@ -192,7 +196,7 @@
             document.getElementById(`tab-${tab}`).classList.toggle('active', tab === name);
         });
         if (name === 'accounts') loadProfiles();
-        if (name === 'access') loadAccessMode();
+        if (name === 'access') loadFrontendSettings();
     }
 
     async function signIn() {
@@ -413,28 +417,36 @@
         setStatus('账号权限已保存。', 'success');
     }
 
-    async function loadAccessMode() {
+    async function loadFrontendSettings() {
         let sb = getClient();
         let { data } = await sb
             .from('app_settings')
             .select('value')
-            .eq('key', 'frontend_access')
+            .eq('key', 'market_settings')
             .maybeSingle();
-        document.getElementById('frontend-mode').value = data?.value?.mode || 'public';
+        document.getElementById('market-rate').value = Number(data?.value?.rate) || 2650;
+        document.getElementById('market-ppn').value = Number(data?.value?.ppnRate) || 11;
     }
 
-    async function saveAccessMode() {
+    async function saveFrontendSettings() {
         let sb = getClient();
-        let mode = document.getElementById('frontend-mode').value;
-        let { error } = await sb.from('app_settings').upsert({
-            key: 'frontend_access',
-            value: { mode }
-        }, { onConflict: 'key' });
+        let rate = numberValue(document.getElementById('market-rate').value, 2650);
+        let ppnRate = numberValue(document.getElementById('market-ppn').value, 11);
+        let { error } = await sb.from('app_settings').upsert([
+            {
+                key: 'frontend_access',
+                value: { mode: 'private' }
+            },
+            {
+                key: 'market_settings',
+                value: { rate, ppnRate }
+            }
+        ], { onConflict: 'key' });
         if (error) {
             setStatus(error.message, 'error');
             return;
         }
-        setStatus('前端访问设置已保存。', 'success');
+        setStatus('前端设置已保存。', 'success');
     }
 
     function escapeHtml(value) {

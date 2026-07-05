@@ -2,7 +2,7 @@
 
 这是可部署到 GitHub Pages 的静态发布目录。
 
-- `index.html`: 前端市场价格页，需使用后台账号管理中启用的账号登录
+- `index.html`: 前端市场价格展示页，需使用后台账号管理中启用的账号登录；汇率和 PPN 由后台维护
 - `admin.html`: 远程后台登录页，编辑权限由 Supabase RLS 控制
 - `supabase-config.js`: Supabase 项目 URL 与 anon key 配置
 - `CNAME`: 默认自定义域名 `pricing.calongloria.id`
