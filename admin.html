@@ -24,12 +24,14 @@
         input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.92em; }
         input[type="number"] { text-align: right; }
         input:disabled { background: #f1f1f3; color: #999; cursor: not-allowed; }
-        button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; background: #0055b3; color: #fff; }
+        button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; background: #0055b3; color: #fff; transition: transform 0.08s ease, filter 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+        button:hover:not(:disabled) { filter: brightness(0.96); box-shadow: 0 2px 8px rgba(0, 85, 179, 0.18); }
+        button:active:not(:disabled), button.clicked { transform: translateY(1px) scale(0.98); filter: brightness(0.9); box-shadow: inset 0 2px 5px rgba(0,0,0,0.18); }
         button.secondary { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         button.danger { background: #d64045; }
         .add-btn { margin-top: 12px; padding: 8px 16px; background: #eef7ff; color: #0055b3; border: 1px dashed #0055b3; border-radius: 6px; cursor: pointer; font-weight: 700; }
         .del-btn { color: #d64045; background: none; border: none; cursor: pointer; font-weight: 700; font-size: 1.05em; padding: 4px; }
-        button:disabled { opacity: 0.55; cursor: not-allowed; }
+        button:disabled { opacity: 0.65; cursor: wait; }
         .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .tabs button { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         .tabs button.active { background: #0055b3; color: #fff; }
@@ -106,8 +108,8 @@
                     <div class="note">保存完整后台模型后，点击“发布前端价格”会只发布型号、零售未税价、代理未税价给前端展示。</div>
                     <div>
                         <button class="secondary" onclick="loadModels()">刷新后台数据</button>
-                        <button onclick="saveModels()">保存后台模型</button>
-                        <button onclick="publishPrices()">发布前端价格</button>
+                        <button id="save-models-btn" onclick="saveModels()">保存后台模型</button>
+                        <button id="publish-prices-btn" onclick="publishPrices()">发布前端价格</button>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -238,6 +240,27 @@
         let el = document.getElementById('status');
         el.className = `status status-bar ${kind}`;
         el.textContent = message || '';
+    }
+
+    function pulseButton(button) {
+        if (!button) return;
+        button.classList.add('clicked');
+        setTimeout(() => button.classList.remove('clicked'), 180);
+    }
+
+    function setButtonBusy(buttonId, busyText, isBusy) {
+        let button = document.getElementById(buttonId);
+        if (!button) return null;
+        if (button.dataset.idleText === undefined) button.dataset.idleText = button.textContent;
+        if (isBusy) {
+            pulseButton(button);
+            button.disabled = true;
+            button.textContent = busyText;
+            return button;
+        }
+        button.disabled = false;
+        button.textContent = button.dataset.idleText;
+        return button;
     }
 
     function getClient() {
@@ -484,48 +507,60 @@
     }
 
     async function saveModels() {
+        setButtonBusy('save-models-btn', '保存中...', true);
+        setStatus('正在保存后台模型...', '');
         let sb = getClient();
-        calcAll();
-        let rows = models.map((m, index) => {
-            let id = Number(m.id || index + 1);
-            let payload = { ...m, id };
-            delete payload.ourPrice;
-            delete payload.dealerPrice;
-            delete payload.compPriceRmb;
-            delete payload.commissionCost;
-            delete payload.margin;
-            delete payload.marginRate;
-            return { id, payload };
-        });
-        let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
-        if (error) {
-            setStatus(error.message, 'error');
-            return;
+        try {
+            calcAll();
+            let rows = models.map((m, index) => {
+                let id = Number(m.id || index + 1);
+                let payload = { ...m, id };
+                delete payload.ourPrice;
+                delete payload.dealerPrice;
+                delete payload.compPriceRmb;
+                delete payload.commissionCost;
+                delete payload.margin;
+                delete payload.marginRate;
+                return { id, payload };
+            });
+            let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
+            if (error) {
+                setStatus(error.message, 'error');
+                return;
+            }
+            setStatus(`后台模型已保存。保存时间：${new Date().toLocaleString()}`, 'success');
+        } finally {
+            setButtonBusy('save-models-btn', '保存中...', false);
         }
-        setStatus('后台模型已保存。', 'success');
     }
 
     async function publishPrices() {
+        setButtonBusy('publish-prices-btn', '发布中...', true);
+        setStatus('正在发布前端价格...', '');
         let sb = getClient();
-        calcAll();
-        let rows = models.map((m, index) => ({
-            id: Number(m.id || index + 1),
-            sort_order: index + 1,
-            name: m.name,
-            retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
-            dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100
-        }));
-        let remove = await sb.from('published_prices').delete().gt('id', 0);
-        if (remove.error) {
-            setStatus(remove.error.message, 'error');
-            return;
+        try {
+            calcAll();
+            let rows = models.map((m, index) => ({
+                id: Number(m.id || index + 1),
+                sort_order: index + 1,
+                name: m.name,
+                retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
+                dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100
+            }));
+            let remove = await sb.from('published_prices').delete().gt('id', 0);
+            if (remove.error) {
+                setStatus(remove.error.message, 'error');
+                return;
+            }
+            let { error } = await sb.from('published_prices').insert(rows);
+            if (error) {
+                setStatus(error.message, 'error');
+                return;
+            }
+            setStatus(`前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
+        } finally {
+            setButtonBusy('publish-prices-btn', '发布中...', false);
         }
-        let { error } = await sb.from('published_prices').insert(rows);
-        if (error) {
-            setStatus(error.message, 'error');
-            return;
-        }
-        setStatus(`前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
     }
 
     function formatRmb(value) {
