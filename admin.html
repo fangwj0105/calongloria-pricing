@@ -18,22 +18,39 @@
         .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
         .panel { border: 1px solid #e5e5ea; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #fbfbfd; }
         .login-grid, .account-grid, .settings-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+        .input-group { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; max-width: 520px; }
+        .input-group input { width: 38%; }
         label { display: block; margin-bottom: 5px; color: #555; font-weight: 700; font-size: 0.84em; }
         input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 0.92em; }
         input[type="number"] { text-align: right; }
+        input:disabled { background: #f1f1f3; color: #999; cursor: not-allowed; }
         button { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; background: #0055b3; color: #fff; }
         button.secondary { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         button.danger { background: #d64045; }
+        .add-btn { margin-top: 12px; padding: 8px 16px; background: #eef7ff; color: #0055b3; border: 1px dashed #0055b3; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        .del-btn { color: #d64045; background: none; border: none; cursor: pointer; font-weight: 700; font-size: 1.05em; padding: 4px; }
         button:disabled { opacity: 0.55; cursor: not-allowed; }
         .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
         .tabs button { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         .tabs button.active { background: #0055b3; color: #fff; }
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.84em; min-width: 1180px; }
+        .mix-table { min-width: 1350px; }
         th, td { border: 1px solid #e5e5ea; padding: 7px; text-align: center; vertical-align: middle; }
         th { background: #f5f5f7; font-weight: 700; }
         td:first-child { text-align: left; font-weight: 700; }
         .readonly { background: #f7fff5; color: #1f6f35; font-weight: 700; }
+        .result-box { margin-top: 18px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e5ea; border-left: 5px solid #0055b3; }
+        .result-item { margin-bottom: 10px; font-size: 0.95em; display: flex; justify-content: space-between; gap: 12px; }
+        .highlight { font-weight: 700; color: #d64045; }
+        .success-highlight { font-weight: 700; color: #2e7d32; }
+        .tax-note { font-size: 0.84em; color: #333; margin-top: 14px; border-top: 1px dashed #ccc; padding-top: 10px; line-height: 1.5; }
+        .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.86em; min-width: 780px; }
+        .market-price-table th { background: #eef7ff; color: #1d1d1f; padding: 9px 8px; border: 1px solid #d8e4f2; text-align: center; }
+        .market-price-table td { padding: 8px; border: 1px solid #e5e5ea; text-align: right; white-space: nowrap; }
+        .market-price-table td:first-child { text-align: left; font-weight: 700; }
+        .market-price-table .dealer-col { background: #f7fff5; color: #1f6f35; }
         .status { min-height: 20px; color: #666; font-size: 0.9em; }
         .hidden { display: none; }
         .note { color: #666; font-size: 0.88em; line-height: 1.5; }
@@ -75,14 +92,15 @@
 
         <div id="owner-console" class="hidden">
             <div class="tabs">
-                <button id="tab-pricing" class="active" onclick="switchTab('pricing')">定价模型</button>
+                <button id="tab-pricing" class="active" onclick="switchTab('pricing')">模组一：定价矩阵</button>
+                <button id="tab-standard" onclick="switchTab('standard')">模组二：年度销量目标</button>
                 <button id="tab-accounts" onclick="switchTab('accounts')">账号权限</button>
                 <button id="tab-access" onclick="switchTab('access')">前端设置</button>
             </div>
 
             <div id="view-pricing">
                 <div class="bar">
-                    <div class="note">保存完整后台模型后，点击“发布前端价格”会只发布型号、零售未税价、代理未税价。</div>
+                    <div class="note">保存完整后台模型后，点击“发布前端价格”会只发布型号、零售未税价、代理未税价给前端展示。</div>
                     <div>
                         <button class="secondary" onclick="loadModels()">刷新后台数据</button>
                         <button onclick="saveModels()">保存后台模型</button>
@@ -90,24 +108,58 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table>
+                    <table class="mix-table">
                         <thead>
                             <tr>
-                                <th>型号</th>
-                                <th>定价方式</th>
-                                <th>到岸成本 RMB</th>
-                                <th>竞品价 IDR</th>
-                                <th>定价比例 %</th>
-                                <th>倒推目标毛利 %</th>
-                                <th>代理折扣 %</th>
-                                <th>佣金 %</th>
-                                <th>零售未税 RMB</th>
-                                <th>代理未税 RMB</th>
+                                <th style="width: 11%;">型号规格</th>
+                                <th style="width: 10%;">定价方式</th>
+                                <th style="width: 9%;">到岸纯成本<br>(RMB)</th>
+                                <th style="width: 10%;">竞品价格<br>(IDR)</th>
+                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品折算<br>(RMB)</th>
+                                <th style="width: 8%;">定价比例<br>(%)</th>
+                                <th style="width: 8%; background:#fff8f0; color:#9a5b00;">倒推目标<br>毛利率(%)</th>
+                                <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
+                                <th style="width: 8%; background:#f7fff5; color:#2e7d32;">代理折扣<br>(%)</th>
+                                <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理价<br>(RMB)</th>
+                                <th style="width: 8%;">佣金比例<br>(%)</th>
+                                <th style="width: 10%; background:#fff0f0; color:#d64045;">实际毛利率<br>(按代理价)</th>
+                                <th style="width: 4%;">操作</th>
                             </tr>
                         </thead>
-                        <tbody id="model-body"></tbody>
+                        <tbody id="pricing-tbody"></tbody>
                     </table>
                 </div>
+                <button class="add-btn" onclick="addModel()">+ 新增产品型号</button>
+                <div class="result-box" id="pricing-out"></div>
+            </div>
+
+            <div id="view-standard" class="hidden">
+                <div class="panel">
+                    <div class="input-group">
+                        <label for="stdFixedCost">年度固定成本总额 (RMB):</label>
+                        <input type="number" id="stdFixedCost" value="200000" oninput="calcAll()">
+                    </div>
+                    <div class="input-group">
+                        <label for="targetProfit">年度目标利润 (RMB):</label>
+                        <input type="number" id="targetProfit" value="0" oninput="calcAll()">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="mix-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">产品型号</th>
+                                <th style="width: 16%;">代理价<br>(RMB)</th>
+                                <th style="width: 16%;">实际毛利率<br>(按代理价)</th>
+                                <th style="width: 16%;">单台毛利<br>(RMB)</th>
+                                <th style="width: 16%;">销售组合<br>(%)</th>
+                                <th style="width: 16%;">年度目标销量<br>(台)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standard-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="result-box" id="standard-out"></div>
             </div>
 
             <div id="view-accounts" class="hidden">
@@ -169,13 +221,15 @@
     <div id="status" class="status"></div>
 </div>
 
-<script src="supabase-config.js?v=20260705-display1"></script>
+<script src="supabase-config.js?v=20260705-prototype1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
     let client = null;
     let currentUser = null;
     let currentProfile = null;
     let models = [];
+    let nextId = 1;
+    let marketSettings = { rate: 2650, ppnRate: 11 };
 
     function setStatus(message, kind = '') {
         let el = document.getElementById('status');
@@ -191,10 +245,11 @@
     }
 
     function switchTab(name) {
-        ['pricing', 'accounts', 'access'].forEach(tab => {
+        ['pricing', 'standard', 'accounts', 'access'].forEach(tab => {
             document.getElementById(`view-${tab}`).classList.toggle('hidden', tab !== name);
             document.getElementById(`tab-${tab}`).classList.toggle('active', tab === name);
         });
+        if (name === 'standard') calcAll();
         if (name === 'accounts') loadProfiles();
         if (name === 'access') loadFrontendSettings();
     }
@@ -275,54 +330,138 @@
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    function normalizeModel(m, index = 0) {
+        m.id = Number(m.id || index + 1);
+        m.name = m.name || '新型号';
+        m.cost = numberValue(m.cost);
+        m.compPrice = numberValue(m.compPrice);
+        m.priceRatio = numberValue(m.priceRatio, 85);
+        m.dealerDiscount = numberValue(m.dealerDiscount, 85);
+        m.commissionRate = numberValue(m.commissionRate, 5);
+        m.targetMarginRate = numberValue(m.targetMarginRate, 50);
+        m.pricingMethod = m.pricingMethod || (m.compPrice > 0 ? 'benchmark' : 'margin');
+        if (m.pricingMethod === 'margin' && m.dealerDiscount === 95) m.dealerDiscount = 85;
+        m.targetQty = numberValue(m.targetQty);
+        return m;
+    }
+
     function calculateModel(m) {
+        normalizeModel(m);
         let method = m.pricingMethod || (numberValue(m.compPrice) > 0 ? 'benchmark' : 'margin');
         let dealerDiscount = numberValue(m.dealerDiscount, 85) / 100;
         let commissionRate = numberValue(m.commissionRate, 0) / 100;
         let targetMarginRate = numberValue(m.targetMarginRate, 50) / 100;
+        m.compPriceRmb = numberValue(m.compPrice) / numberValue(marketSettings.rate, 2650);
         if (method === 'margin') {
             let denominator = 1 - commissionRate - targetMarginRate;
             m.dealerPrice = denominator > 0 ? numberValue(m.cost) / denominator : 0;
             m.ourPrice = dealerDiscount > 0 ? m.dealerPrice / dealerDiscount : 0;
         } else {
-            let compPriceRmb = numberValue(m.compPrice) / 2650;
-            m.ourPrice = compPriceRmb * (numberValue(m.priceRatio, 85) / 100);
+            m.ourPrice = m.compPriceRmb * (numberValue(m.priceRatio, 85) / 100);
             m.dealerPrice = m.ourPrice * dealerDiscount;
         }
+        m.commissionCost = m.dealerPrice * commissionRate;
+        m.margin = m.dealerPrice - numberValue(m.cost) - m.commissionCost;
+        m.marginRate = m.dealerPrice > 0 ? (m.margin / m.dealerPrice) * 100 : 0;
         return m;
     }
 
-    function renderModels() {
-        models.forEach(calculateModel);
-        document.getElementById('model-body').innerHTML = models.map((m, index) => `
+    function renderRows() {
+        let totalSeedQty = models.reduce((sum, x) => sum + numberValue(x.targetQty), 0);
+        models.forEach((m, index) => {
+            normalizeModel(m, index);
+            if (m.mixShare === undefined) {
+                m.mixShare = totalSeedQty > 0 ? (numberValue(m.targetQty) / totalSeedQty) * 100 : 0;
+            }
+        });
+        nextId = models.reduce((max, m) => Math.max(max, Number(m.id) || 0), 0) + 1;
+
+        document.getElementById('pricing-tbody').innerHTML = models.map((m) => `
             <tr>
-                <td><input value="${escapeHtml(m.name || '')}" oninput="updateModel(${index}, 'name', this.value)"></td>
+                <td><input type="text" value="${escapeHtml(m.name || '')}" oninput="updateM(${m.id}, 'name', this.value)"></td>
                 <td>
-                    <select onchange="updateModel(${index}, 'pricingMethod', this.value)">
-                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>竞品对标</option>
-                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>毛利倒推</option>
+                    <select onchange="updateM(${m.id}, 'pricingMethod', this.value)">
+                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>竞品对标法</option>
+                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>毛利率倒推法</option>
                     </select>
                 </td>
-                <td><input type="number" value="${m.cost || 0}" oninput="updateModel(${index}, 'cost', this.value)"></td>
-                <td><input type="number" value="${m.compPrice || 0}" oninput="updateModel(${index}, 'compPrice', this.value)"></td>
-                <td><input type="number" value="${m.priceRatio || 85}" oninput="updateModel(${index}, 'priceRatio', this.value)"></td>
-                <td><input type="number" value="${m.targetMarginRate || 50}" oninput="updateModel(${index}, 'targetMarginRate', this.value)"></td>
-                <td><input type="number" value="${m.dealerDiscount || 85}" oninput="updateModel(${index}, 'dealerDiscount', this.value)"></td>
-                <td><input type="number" value="${m.commissionRate || 0}" oninput="updateModel(${index}, 'commissionRate', this.value)"></td>
-                <td class="readonly">¥${Math.round(m.ourPrice || 0).toLocaleString()}</td>
-                <td class="readonly">¥${Math.round(m.dealerPrice || 0).toLocaleString()}</td>
+                <td><input type="number" value="${m.cost || 0}" oninput="updateM(${m.id}, 'cost', this.value)"></td>
+                <td><input type="number" value="${m.compPrice || 0}" placeholder="Rp" oninput="updateM(${m.id}, 'compPrice', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
+                <td style="background:#f7fbff;"><span id="calc-comp-rmb-${m.id}" class="readonly">0</span></td>
+                <td><input type="number" value="${m.priceRatio || 85}" oninput="updateM(${m.id}, 'priceRatio', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
+                <td style="background:#fff8f0;"><input type="number" value="${m.targetMarginRate || 50}" step="0.1" oninput="updateM(${m.id}, 'targetMarginRate', this.value)" ${m.pricingMethod === 'margin' ? '' : 'disabled'}></td>
+                <td style="background:#eef7ff;"><span id="calc-price-${m.id}" class="readonly">0</span></td>
+                <td style="background:#f7fff5;"><input type="number" value="${m.dealerDiscount || 85}" step="0.1" oninput="updateM(${m.id}, 'dealerDiscount', this.value)"></td>
+                <td style="background:#f7fff5;"><span id="calc-dealer-price-${m.id}" class="readonly">0</span></td>
+                <td><input type="number" value="${m.commissionRate ?? 5}" step="0.1" oninput="updateM(${m.id}, 'commissionRate', this.value)"></td>
+                <td style="background:#fff0f0;"><span id="calc-margin-${m.id}" class="readonly">0</span></td>
+                <td><button class="del-btn" onclick="delM(${m.id})" title="删除此行">x</button></td>
             </tr>
         `).join('');
+
+        document.getElementById('standard-tbody').innerHTML = models.map((m) => `
+            <tr>
+                <td style="text-align:left; padding-left:15px;"><b id="std-name-${m.id}">${escapeHtml(m.name || '')}</b></td>
+                <td style="background:#f7fff5;"><span id="std-dealer-price-${m.id}" class="readonly">0</span></td>
+                <td style="background:#f9f9f9;"><span id="std-margin-${m.id}" class="readonly">0</span></td>
+                <td style="background:#fff8f8;"><span id="std-margin-amount-${m.id}" class="readonly">0</span></td>
+                <td><input type="number" value="${numberValue(m.mixShare).toFixed(1)}" step="0.1" oninput="updateM(${m.id}, 'mixShare', this.value)"></td>
+                <td style="background:#eef7ff;"><span id="std-target-qty-${m.id}" class="readonly">0</span></td>
+            </tr>
+        `).join('');
+        calcAll();
     }
 
-    function updateModel(index, field, value) {
-        let numericFields = ['cost', 'compPrice', 'priceRatio', 'targetMarginRate', 'dealerDiscount', 'commissionRate'];
-        models[index][field] = numericFields.includes(field) ? numberValue(value) : value;
-        renderModels();
+    function updateM(id, field, value) {
+        let m = models.find(x => Number(x.id) === Number(id));
+        if (!m) return;
+        let numericFields = ['cost', 'compPrice', 'priceRatio', 'targetMarginRate', 'dealerDiscount', 'commissionRate', 'mixShare', 'targetQty'];
+        m[field] = numericFields.includes(field) ? numberValue(value) : value;
+        if (field === 'pricingMethod') {
+            m.pricingMethod = value;
+            if (value === 'margin') {
+                m.dealerDiscount = 85;
+                if (m.targetMarginRate === undefined || m.targetMarginRate === 20) m.targetMarginRate = 50;
+            }
+            renderRows();
+            return;
+        }
+        if (field === 'name') {
+            let nameEl = document.getElementById(`std-name-${id}`);
+            if (nameEl) nameEl.textContent = value;
+        }
+        calcAll();
+    }
+
+    function addModel() {
+        models.push({
+            id: nextId++,
+            name: '新型号',
+            cost: 0,
+            compPrice: 0,
+            pricingMethod: 'margin',
+            priceRatio: 85,
+            targetMarginRate: 50,
+            dealerDiscount: 85,
+            commissionRate: 5,
+            mixShare: 0,
+            targetQty: 0
+        });
+        renderRows();
+    }
+
+    function delM(id) {
+        if (models.length <= 1) {
+            alert('至少保留一款机型。');
+            return;
+        }
+        models = models.filter(x => Number(x.id) !== Number(id));
+        renderRows();
     }
 
     async function loadModels() {
         let sb = getClient();
+        await loadFrontendSettings();
         let { data, error } = await sb
             .from('pricing_models')
             .select('id, payload')
@@ -331,18 +470,23 @@
             setStatus(error.message, 'error');
             return;
         }
-        models = (data || []).map(row => ({ id: row.id, ...row.payload }));
-        renderModels();
+        models = (data || []).map((row, index) => normalizeModel({ id: row.id, ...row.payload }, index));
+        renderRows();
         setStatus(models.length ? '后台模型已加载。' : '后台模型为空，请先执行 seed SQL 导入初始模型。');
     }
 
     async function saveModels() {
         let sb = getClient();
+        calcAll();
         let rows = models.map((m, index) => {
             let id = Number(m.id || index + 1);
             let payload = { ...m, id };
             delete payload.ourPrice;
             delete payload.dealerPrice;
+            delete payload.compPriceRmb;
+            delete payload.commissionCost;
+            delete payload.margin;
+            delete payload.marginRate;
             return { id, payload };
         });
         let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
@@ -355,7 +499,7 @@
 
     async function publishPrices() {
         let sb = getClient();
-        models.forEach(calculateModel);
+        calcAll();
         let rows = models.map((m, index) => ({
             id: Number(m.id || index + 1),
             sort_order: index + 1,
@@ -374,6 +518,163 @@
             return;
         }
         setStatus('前端价格已发布。', 'success');
+    }
+
+    function formatRmb(value) {
+        return `¥${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+
+    function formatIdr(value) {
+        return `Rp ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+
+    function buildMarketPriceTableHtml(rate, ppnRate) {
+        let title = `各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)`;
+        let taxRate = ppnRate / 100;
+        let rowsHtml = models.map(m => {
+            let retailRmbTax = numberValue(m.ourPrice) * (1 + taxRate);
+            let retailIdrTax = retailRmbTax * rate;
+            let dealerRmbTax = numberValue(m.dealerPrice) * (1 + taxRate);
+            let dealerIdrTax = dealerRmbTax * rate;
+            return `<tr>
+                <td>${escapeHtml(m.name)}</td>
+                <td>${formatRmb(retailRmbTax)}</td>
+                <td>${formatIdr(retailIdrTax)}</td>
+                <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
+                <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+            <div class="market-price-header">
+                <strong>${title}</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="market-price-table">
+                    <thead>
+                        <tr>
+                            <th>型号规格</th>
+                            <th>零售税后价 RMB</th>
+                            <th>零售税后价 IDR</th>
+                            <th>代理商税后价 RMB</th>
+                            <th>代理商税后价 IDR</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>`;
+    }
+
+    function calcAll() {
+        let rate = numberValue(marketSettings.rate, 2650);
+        let ppnRate = numberValue(marketSettings.ppnRate, 11);
+        let fixedCostEl = document.getElementById('stdFixedCost');
+        let targetProfitEl = document.getElementById('targetProfit');
+        let fc = fixedCostEl ? numberValue(fixedCostEl.value) : 0;
+        let targetProfit = targetProfitEl ? numberValue(targetProfitEl.value) : 0;
+
+        let mixTotal = 0;
+        let weightedDealerPrice = 0;
+        let weightedMargin = 0;
+        let weightedMarginRate = 0;
+        let targetTotalQty = 0;
+
+        models.forEach(m => {
+            calculateModel(m);
+            mixTotal += Math.max(0, numberValue(m.mixShare));
+
+            let compRmbSpan = document.getElementById(`calc-comp-rmb-${m.id}`);
+            let priceSpan = document.getElementById(`calc-price-${m.id}`);
+            let dealerPriceSpan = document.getElementById(`calc-dealer-price-${m.id}`);
+            let marginSpan = document.getElementById(`calc-margin-${m.id}`);
+            let stdDealerPriceSpan = document.getElementById(`std-dealer-price-${m.id}`);
+            let stdMarginSpan = document.getElementById(`std-margin-${m.id}`);
+            let stdMarginAmountSpan = document.getElementById(`std-margin-amount-${m.id}`);
+            if (compRmbSpan) compRmbSpan.textContent = formatRmb(m.compPriceRmb);
+            if (priceSpan) priceSpan.textContent = formatRmb(m.ourPrice);
+            if (dealerPriceSpan) dealerPriceSpan.textContent = formatRmb(m.dealerPrice);
+            if (marginSpan) marginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
+            if (stdDealerPriceSpan) stdDealerPriceSpan.textContent = formatRmb(m.dealerPrice);
+            if (stdMarginSpan) stdMarginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
+            if (stdMarginAmountSpan) stdMarginAmountSpan.textContent = formatRmb(m.margin);
+        });
+
+        if (mixTotal > 0) {
+            models.forEach(m => {
+                let weight = Math.max(0, numberValue(m.mixShare)) / mixTotal;
+                weightedDealerPrice += numberValue(m.dealerPrice) * weight;
+                weightedMargin += numberValue(m.margin) * weight;
+            });
+            weightedMarginRate = weightedDealerPrice > 0 ? (weightedMargin / weightedDealerPrice) * 100 : 0;
+        }
+
+        let requiredContribution = Math.max(0, fc + targetProfit);
+        if (weightedMargin > 0) targetTotalQty = Math.ceil(requiredContribution / weightedMargin);
+
+        let allocations = models.map(m => {
+            let weight = mixTotal > 0 ? Math.max(0, numberValue(m.mixShare)) / mixTotal : 0;
+            let rawQty = targetTotalQty * weight;
+            let floorQty = Math.floor(rawQty);
+            return { model: m, qty: floorQty, remainder: rawQty - floorQty };
+        });
+        let assignedQty = allocations.reduce((sum, item) => sum + item.qty, 0);
+        allocations
+            .slice()
+            .sort((a, b) => b.remainder - a.remainder)
+            .slice(0, Math.max(0, targetTotalQty - assignedQty))
+            .forEach(item => item.qty += 1);
+
+        let totalContribution = 0;
+        allocations.forEach(item => {
+            let targetQtySpan = document.getElementById(`std-target-qty-${item.model.id}`);
+            if (targetQtySpan) targetQtySpan.textContent = item.qty.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            totalContribution += numberValue(item.model.margin) * item.qty;
+        });
+
+        let pricingOut = document.getElementById('pricing-out');
+        if (pricingOut) {
+            pricingOut.innerHTML = buildMarketPriceTableHtml(rate, ppnRate) +
+                `<hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">` +
+                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】本品定价 RMB = (竞品价格 IDR / IDR/RMB 汇率) × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【实际毛利率】= [代理价 - 到岸成本 - (代理价 × 佣金比例)] / 代理价。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+        }
+
+        let standardOut = document.getElementById('standard-out');
+        if (!standardOut) return;
+        let netProfit = totalContribution - fc;
+        let beProgress = fc > 0 ? (totalContribution / fc) * 100 : 0;
+        let progressColor = weightedMargin > 0 ? '#2e7d32' : '#d64045';
+        let progressStatusText = weightedMargin > 0
+            ? `<span class="success-highlight">按当前产品组合，预计达成年利润: ${formatRmb(netProfit)}</span>`
+            : `<span class="highlight">当前组合的加权单台毛利不足，无法反推有效销量目标</span>`;
+
+        let sortedModels = [...models].filter(m => numberValue(m.margin) > 0).sort((a, b) => b.marginRate - a.marginRate);
+        let whatIfHtml = '';
+        if (sortedModels.length >= 2) {
+            let bestModel = sortedModels[0];
+            let worstModel = sortedModels[sortedModels.length - 1];
+            let dropQty = 5;
+            let loss = dropQty * bestModel.margin;
+            let makeupQty = worstModel.margin > 0 ? (loss / worstModel.margin).toFixed(1) : '0';
+            whatIfHtml = `<div class="tax-note">
+                <strong>经营决策推演 (动态 What-If Analysis)：</strong><br>
+                最高实际毛利率机型是 <b>${escapeHtml(bestModel.name)}</b>，当前实际毛利率为 <b>${bestModel.marginRate.toFixed(1)}%</b>。如果该机型少卖 ${dropQty} 台，公司净利润将减少 <b>${formatRmb(loss)}</b>。<br>
+                为弥补此利润缺口，低毛利率机型 <b>${escapeHtml(worstModel.name)}</b> 需要追加 <b>${makeupQty} 台</b> 销量。<br>
+                <em>经营统计以毛利率识别产品质量，年度利润仍以单台毛利金额乘销量衡量固定成本覆盖能力。</em>
+            </div>`;
+        }
+
+        standardOut.innerHTML =
+            `<div class="result-item"><span>产品组合比例合计:</span> <span>${mixTotal.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>加权平均代理价:</span> <span>${formatRmb(weightedDealerPrice)}</span></div>` +
+            `<div class="result-item"><span>加权平均毛利率:</span> <span>${weightedMarginRate.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>加权平均单台毛利:</span> <span>${formatRmb(weightedMargin)}</span></div>` +
+            `<div class="result-item"><span>年度固定成本:</span> <span>${formatRmb(fc)}</span></div>` +
+            `<div class="result-item"><span>年度目标利润:</span> <span>${formatRmb(targetProfit)}</span></div>` +
+            `<div class="result-item" style="border-top:1.5px solid #ccc; padding-top:10px;"><span><b>年度目标总销量:</b></span> <span style="font-size:1.1em;"><b>${targetTotalQty.toLocaleString(undefined, { maximumFractionDigits: 0 })} 台</b></span></div>` +
+            `<div class="result-item"><span>目标达成状态:</span> ${progressStatusText}</div>` +
+            `<div style="background:#e5e5ea; border-radius:8px; height:12px; margin:12px 0; overflow:hidden;"><div style="background:${progressColor}; width:${Math.min(100, beProgress).toFixed(1)}%; height:100%;"></div></div>` +
+            `<div class="result-item" style="font-size:0.84em; color:#555;"><span>固定成本覆盖率:</span> <b>${beProgress.toFixed(1)}%</b></div>` +
+            whatIfHtml;
     }
 
     async function loadProfiles() {
@@ -424,14 +725,21 @@
             .select('value')
             .eq('key', 'market_settings')
             .maybeSingle();
-        document.getElementById('market-rate').value = Number(data?.value?.rate) || 2650;
-        document.getElementById('market-ppn').value = Number(data?.value?.ppnRate) || 11;
+        marketSettings = {
+            rate: Number(data?.value?.rate) || 2650,
+            ppnRate: Number(data?.value?.ppnRate) || 11
+        };
+        let rateInput = document.getElementById('market-rate');
+        let ppnInput = document.getElementById('market-ppn');
+        if (rateInput) rateInput.value = marketSettings.rate;
+        if (ppnInput) ppnInput.value = marketSettings.ppnRate;
     }
 
     async function saveFrontendSettings() {
         let sb = getClient();
         let rate = numberValue(document.getElementById('market-rate').value, 2650);
         let ppnRate = numberValue(document.getElementById('market-ppn').value, 11);
+        marketSettings = { rate, ppnRate };
         let { error } = await sb.from('app_settings').upsert([
             {
                 key: 'frontend_access',
@@ -446,6 +754,7 @@
             setStatus(error.message, 'error');
             return;
         }
+        calcAll();
         setStatus('前端设置已保存。', 'success');
     }
 
