@@ -341,11 +341,24 @@
             return;
         }
         currentProfile = profile;
+        let isOwner = profile?.role === 'owner' && profile?.is_active;
+        if (!isOwner) {
+            document.getElementById('login-panel').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+            if (profile?.role === 'viewer' && profile?.is_active) {
+                setStatus('该账号仅可访问前端价格页，正在跳转...', 'success');
+                let frontendUrl = new URL('index.html', window.location.href).href;
+                window.setTimeout(() => window.location.replace(frontendUrl), 350);
+                return;
+            }
+            await sb.auth.signOut();
+            setStatus('当前账号没有后台权限。请使用 owner 账号登录。', 'error');
+            return;
+        }
         document.getElementById('login-panel').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         document.getElementById('user-label').textContent = currentUser.email || currentUser.id;
         document.getElementById('role-label').textContent = profile ? ` / ${profile.role}` : ' / 未授权';
-        let isOwner = profile?.role === 'owner' && profile?.is_active;
         document.getElementById('not-owner').classList.toggle('hidden', isOwner);
         document.getElementById('owner-console').classList.toggle('hidden', !isOwner);
         if (isOwner) await loadModels();
