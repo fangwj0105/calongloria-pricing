@@ -119,8 +119,9 @@
                                 <th style="width: 11%;">型号规格</th>
                                 <th style="width: 10%;">定价方式</th>
                                 <th style="width: 9%;">到岸纯成本<br>(RMB)</th>
-                                <th style="width: 10%;">竞品价格<br>(IDR)</th>
-                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品折算<br>(RMB)</th>
+                                <th style="width: 10%;">竞品价格<br>(含税 IDR)</th>
+                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品税前<br>(IDR)</th>
+                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品税前<br>(RMB)</th>
                                 <th style="width: 8%;">定价比例<br>(%)</th>
                                 <th style="width: 8%; background:#fff8f0; color:#9a5b00;">倒推目标<br>毛利率(%)</th>
                                 <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
@@ -395,7 +396,9 @@
         let dealerDiscount = numberValue(m.dealerDiscount, 85) / 100;
         let commissionRate = commissionRateValue(m.commissionRate) / 100;
         let targetMarginRate = numberValue(m.targetMarginRate, 50) / 100;
-        m.compPriceRmb = numberValue(m.compPrice) / numberValue(marketSettings.rate, 2650);
+        let taxMultiplier = 1 + (numberValue(marketSettings.ppnRate, 11) / 100);
+        m.compPriceNetIdr = taxMultiplier > 0 ? numberValue(m.compPrice) / taxMultiplier : 0;
+        m.compPriceRmb = m.compPriceNetIdr / numberValue(marketSettings.rate, 2650);
         if (method === 'margin') {
             let denominator = 1 - commissionRate - targetMarginRate;
             m.dealerPrice = denominator > 0 ? numberValue(m.cost) / denominator : 0;
@@ -431,6 +434,7 @@
                 </td>
                 <td><input type="number" value="${m.cost || 0}" oninput="updateM(${m.id}, 'cost', this.value)"></td>
                 <td><input type="number" value="${m.compPrice || 0}" placeholder="Rp" oninput="updateM(${m.id}, 'compPrice', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
+                <td style="background:#f7fbff;"><span id="calc-comp-net-idr-${m.id}" class="readonly">0</span></td>
                 <td style="background:#f7fbff;"><span id="calc-comp-rmb-${m.id}" class="readonly">0</span></td>
                 <td><input type="number" value="${m.priceRatio || 85}" oninput="updateM(${m.id}, 'priceRatio', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
                 <td style="background:#fff8f0;"><input type="number" value="${m.targetMarginRate || 50}" step="0.1" oninput="updateM(${m.id}, 'targetMarginRate', this.value)" ${m.pricingMethod === 'margin' ? '' : 'disabled'}></td>
@@ -530,6 +534,7 @@
                 let payload = { ...m, id };
                 delete payload.ourPrice;
                 delete payload.dealerPrice;
+                delete payload.compPriceNetIdr;
                 delete payload.compPriceRmb;
                 delete payload.commissionCost;
                 delete payload.margin;
@@ -639,6 +644,7 @@
             calculateModel(m);
             mixTotal += Math.max(0, numberValue(m.mixShare));
 
+            let compNetIdrSpan = document.getElementById(`calc-comp-net-idr-${m.id}`);
             let compRmbSpan = document.getElementById(`calc-comp-rmb-${m.id}`);
             let priceSpan = document.getElementById(`calc-price-${m.id}`);
             let dealerPriceSpan = document.getElementById(`calc-dealer-price-${m.id}`);
@@ -646,6 +652,7 @@
             let stdDealerPriceSpan = document.getElementById(`std-dealer-price-${m.id}`);
             let stdMarginSpan = document.getElementById(`std-margin-${m.id}`);
             let stdMarginAmountSpan = document.getElementById(`std-margin-amount-${m.id}`);
+            if (compNetIdrSpan) compNetIdrSpan.textContent = formatIdr(m.compPriceNetIdr);
             if (compRmbSpan) compRmbSpan.textContent = formatRmb(m.compPriceRmb);
             if (priceSpan) priceSpan.textContent = formatRmb(m.ourPrice);
             if (dealerPriceSpan) dealerPriceSpan.textContent = formatRmb(m.dealerPrice);
@@ -691,7 +698,7 @@
         if (pricingOut) {
             pricingOut.innerHTML = buildMarketPriceTableHtml(rate, ppnRate) +
                 `<hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">` +
-                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】本品定价 RMB = (竞品价格 IDR / IDR/RMB 汇率) × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (代理价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】竞品税前 IDR = 竞品含税 IDR / (1 + PPN)，竞品税前 RMB = 竞品税前 IDR / IDR/RMB 汇率，本品定价 RMB = 竞品税前 RMB × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (代理价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。物流费用已剔除，后续按具体地址/订单单独核算。前端价格展示仍按现有模式统一计算含 PPN 价格。</div>`;
         }
 
         let standardOut = document.getElementById('standard-out');
