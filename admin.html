@@ -37,7 +37,7 @@
         .tabs button.active { background: #0055b3; color: #fff; }
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.84em; min-width: 1180px; }
-        .mix-table { min-width: 1560px; }
+        .mix-table { min-width: 1760px; }
         .commission-col { min-width: 96px; }
         .commission-input { min-width: 82px; }
         th, td { border: 1px solid #e5e5ea; padding: 7px; text-align: center; vertical-align: middle; }
@@ -127,8 +127,10 @@
                                 <th style="width: 8%;">定价比例<br>(%)</th>
                                 <th style="width: 8%; background:#fff8f0; color:#9a5b00;">倒推目标<br>毛利率(%)</th>
                                 <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
+                                <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品含税<br>(IDR)</th>
                                 <th style="width: 8%; background:#f7fff5; color:#2e7d32;">代理折扣<br>(%)</th>
                                 <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理价<br>(RMB)</th>
+                                <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理含税<br>(IDR)</th>
                                 <th class="commission-col" style="width: 9%;">佣金比例<br>(%)</th>
                                 <th style="width: 10%; background:#fff0f0; color:#d64045;">实际毛利率<br>(按代理价)</th>
                                 <th style="width: 4%;">操作</th>
@@ -441,8 +443,10 @@
                 <td><input type="number" value="${m.priceRatio || 85}" oninput="updateM(${m.id}, 'priceRatio', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
                 <td style="background:#fff8f0;"><input type="number" value="${m.targetMarginRate || 50}" step="0.1" oninput="updateM(${m.id}, 'targetMarginRate', this.value)" ${m.pricingMethod === 'margin' ? '' : 'disabled'}></td>
                 <td style="background:#eef7ff;"><span id="calc-price-${m.id}" class="readonly">0</span></td>
+                <td style="background:#eef7ff;"><span id="calc-price-tax-idr-${m.id}" class="readonly">0</span></td>
                 <td style="background:#f7fff5;"><input type="number" value="${m.dealerDiscount || 85}" step="0.1" oninput="updateM(${m.id}, 'dealerDiscount', this.value)"></td>
                 <td style="background:#f7fff5;"><span id="calc-dealer-price-${m.id}" class="readonly">0</span></td>
+                <td style="background:#f7fff5;"><span id="calc-dealer-tax-idr-${m.id}" class="readonly">0</span></td>
                 <td class="commission-col"><input class="commission-input" type="number" value="${m.commissionRate ?? 5}" step="0.1" oninput="updateM(${m.id}, 'commissionRate', this.value)"></td>
                 <td style="background:#fff0f0;"><span id="calc-margin-${m.id}" class="readonly">0</span></td>
                 <td><button class="del-btn" onclick="delM(${m.id})" title="删除此行">x</button></td>
@@ -657,7 +661,9 @@
             let compNetIdrSpan = document.getElementById(`calc-comp-net-idr-${m.id}`);
             let compRmbSpan = document.getElementById(`calc-comp-rmb-${m.id}`);
             let priceSpan = document.getElementById(`calc-price-${m.id}`);
+            let priceTaxIdrSpan = document.getElementById(`calc-price-tax-idr-${m.id}`);
             let dealerPriceSpan = document.getElementById(`calc-dealer-price-${m.id}`);
+            let dealerTaxIdrSpan = document.getElementById(`calc-dealer-tax-idr-${m.id}`);
             let marginSpan = document.getElementById(`calc-margin-${m.id}`);
             let stdDealerPriceSpan = document.getElementById(`std-dealer-price-${m.id}`);
             let stdMarginSpan = document.getElementById(`std-margin-${m.id}`);
@@ -665,7 +671,9 @@
             if (compNetIdrSpan) compNetIdrSpan.textContent = formatIdr(m.compPriceNetIdr);
             if (compRmbSpan) compRmbSpan.textContent = formatRmb(m.compPriceRmb);
             if (priceSpan) priceSpan.textContent = formatRmb(m.ourPrice);
+            if (priceTaxIdrSpan) priceTaxIdrSpan.textContent = formatIdr(roundFinalIdr(numberValue(m.ourPrice) * (1 + (ppnRate / 100)) * rate));
             if (dealerPriceSpan) dealerPriceSpan.textContent = formatRmb(m.dealerPrice);
+            if (dealerTaxIdrSpan) dealerTaxIdrSpan.textContent = formatIdr(roundFinalIdr(numberValue(m.dealerPrice) * (1 + (ppnRate / 100)) * rate));
             if (marginSpan) marginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
             if (stdDealerPriceSpan) stdDealerPriceSpan.textContent = formatRmb(m.dealerPrice);
             if (stdMarginSpan) stdMarginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
