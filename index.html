@@ -108,6 +108,10 @@
         return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
     }
 
+    function roundFinalPrice(value) {
+        return Math.round(Number(value || 0));
+    }
+
     function clonePublicRows() {
         return PUBLIC_PRICE_ROWS.map(row => ({...row}));
     }
@@ -224,10 +228,10 @@
         let title = `Daftar Harga Pasar Indonesia per Model (Termasuk PPN ${ppnRate.toFixed(0)}%)<span class="zh">各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)</span>`;
         let rowsHtml = models.map(m => {
             let taxRate = ppnRate / 100;
-            let retailRmbTax = m.ourPrice * (1 + taxRate);
-            let retailIdrTax = retailRmbTax * rate;
-            let dealerRmbTax = m.dealerPrice * (1 + taxRate);
-            let dealerIdrTax = dealerRmbTax * rate;
+            let retailRmbTax = roundFinalPrice(m.ourPrice * (1 + taxRate));
+            let retailIdrTax = roundFinalPrice(m.ourPrice * (1 + taxRate) * rate);
+            let dealerRmbTax = roundFinalPrice(m.dealerPrice * (1 + taxRate));
+            let dealerIdrTax = roundFinalPrice(m.dealerPrice * (1 + taxRate) * rate);
             return `<tr>
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
