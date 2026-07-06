@@ -600,7 +600,7 @@
     }
 
     function roundFinalIdr(value) {
-        return Math.round(Number(value || 0) / 1000000) * 1000000;
+        return Math.round(Number(value || 0) / 100000) * 100000;
     }
 
     function buildMarketPriceTableHtml(rate, ppnRate) {
