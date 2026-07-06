@@ -591,18 +591,22 @@
         return `Rp ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
     }
 
-    function roundFinalPrice(value) {
+    function roundFinalRmb(value) {
         return Math.round(Number(value || 0));
+    }
+
+    function roundFinalIdr(value) {
+        return Math.round(Number(value || 0) / 1000000) * 1000000;
     }
 
     function buildMarketPriceTableHtml(rate, ppnRate) {
         let title = `各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)`;
         let taxRate = ppnRate / 100;
         let rowsHtml = models.map(m => {
-            let retailRmbTax = roundFinalPrice(numberValue(m.ourPrice) * (1 + taxRate));
-            let retailIdrTax = roundFinalPrice(numberValue(m.ourPrice) * (1 + taxRate) * rate);
-            let dealerRmbTax = roundFinalPrice(numberValue(m.dealerPrice) * (1 + taxRate));
-            let dealerIdrTax = roundFinalPrice(numberValue(m.dealerPrice) * (1 + taxRate) * rate);
+            let retailRmbTax = roundFinalRmb(numberValue(m.ourPrice) * (1 + taxRate));
+            let retailIdrTax = roundFinalIdr(numberValue(m.ourPrice) * (1 + taxRate) * rate);
+            let dealerRmbTax = roundFinalRmb(numberValue(m.dealerPrice) * (1 + taxRate));
+            let dealerIdrTax = roundFinalIdr(numberValue(m.dealerPrice) * (1 + taxRate) * rate);
             return `<tr>
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
