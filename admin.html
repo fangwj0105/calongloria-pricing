@@ -129,7 +129,7 @@
                                 <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
                                 <th style="width: 8%; background:#f7fff5; color:#2e7d32;">代理折扣<br>(%)</th>
                                 <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理价<br>(RMB)</th>
-                                <th class="commission-col" style="width: 9%;">佣金比例<br>(%)</th>
+                                <th class="commission-col" style="width: 9%;">佣金比例<br>(按本品定价)</th>
                                 <th style="width: 10%; background:#fff0f0; color:#d64045;">实际毛利率<br>(按代理价)</th>
                                 <th style="width: 4%;">操作</th>
                             </tr>
@@ -402,14 +402,14 @@
         m.compPriceNetIdr = taxMultiplier > 0 ? numberValue(m.compPrice) / taxMultiplier : 0;
         m.compPriceRmb = m.compPriceNetIdr / numberValue(marketSettings.rate, 2650);
         if (method === 'margin') {
-            let denominator = 1 - commissionRate - targetMarginRate;
+            let denominator = dealerDiscount > 0 ? 1 - targetMarginRate - (commissionRate / dealerDiscount) : 0;
             m.dealerPrice = denominator > 0 ? numberValue(m.cost) / denominator : 0;
             m.ourPrice = dealerDiscount > 0 ? m.dealerPrice / dealerDiscount : 0;
         } else {
             m.ourPrice = m.compPriceRmb * (numberValue(m.priceRatio, 85) / 100);
             m.dealerPrice = m.ourPrice * dealerDiscount;
         }
-        m.commissionCost = m.dealerPrice * commissionRate;
+        m.commissionCost = m.ourPrice * commissionRate;
         m.margin = m.dealerPrice - numberValue(m.cost) - m.commissionCost;
         m.marginRate = m.dealerPrice > 0 ? (m.margin / m.dealerPrice) * 100 : 0;
         return m;
@@ -660,7 +660,7 @@
         let pricingOut = document.getElementById('pricing-out');
         if (pricingOut) {
             pricingOut.innerHTML =
-                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】竞品税前 IDR = 竞品含税 IDR / (1 + PPN)，竞品税前 RMB = 竞品税前 IDR / IDR/RMB 汇率，本品定价 RMB = 竞品税前 RMB × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 佣金比例 - 倒推目标毛利率)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (代理价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。后台仅输出未税本品定价与未税代理价；前端展示页会按 PPN 计算税后价格。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】竞品税前 IDR = 竞品含税 IDR / (1 + PPN)，竞品税前 RMB = 竞品税前 IDR / IDR/RMB 汇率，本品定价 RMB = 竞品税前 RMB × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 倒推目标毛利率 - 佣金比例 / 代理折扣)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (本品定价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。后台仅输出未税本品定价与未税代理价；前端展示页会按 PPN 计算税后价格。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
         }
 
         let standardOut = document.getElementById('standard-out');
