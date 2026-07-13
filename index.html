@@ -31,7 +31,7 @@
         .status { margin-bottom: 12px; color: #666; font-size: 0.86em; }
         .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .table-responsive { overflow-x: auto; }
-        .market-price-table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
+        .market-price-table { width: 100%; min-width: 980px; border-collapse: collapse; background: white; font-size: 0.9em; }
         .market-price-table th { background: #eef7ff; color: #1d1d1f; padding: 10px 8px; border: 1px solid #d8e4f2; text-align: center; }
         .market-price-table td { padding: 9px 8px; border: 1px solid #e5e5ea; text-align: right; white-space: nowrap; }
         .market-price-table td:first-child { text-align: left; font-weight: 700; }
@@ -108,6 +108,10 @@
         return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
     }
 
+    function formatPercent(value) {
+        return `${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:1})}%`;
+    }
+
     function roundFinalRmb(value) {
         return Math.round(Number(value || 0));
     }
@@ -166,12 +170,13 @@
         if (!client) return [];
         let { data, error } = await client
             .from('published_prices')
-            .select('name, retail_rmb, dealer_rmb, sort_order')
+            .select('name, retail_rmb, dealer_discount, dealer_rmb, sort_order')
             .order('sort_order', { ascending: true });
         if (error) throw error;
         return (data || []).map(row => ({
             name: row.name,
             retailRmb: Number(row.retail_rmb || 0),
+            dealerDiscount: Number(row.dealer_discount || 85),
             dealerRmb: Number(row.dealer_rmb || 0)
         }));
     }
@@ -240,6 +245,7 @@
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
                 <td>${formatIdr(retailIdrTax)}</td>
+                <td class="dealer-col">${formatPercent(m.dealerDiscount || 85)}</td>
                 <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
                 <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
             </tr>`;
@@ -256,6 +262,7 @@
                             <th>Model / Spesifikasi<span class="zh">型号规格</span></th>
                             <th>Harga Ritel Setelah Pajak RMB<span class="zh">零售税后价 RMB</span></th>
                             <th>Harga Ritel Setelah Pajak IDR<span class="zh">零售税后价 IDR（10万取整）</span></th>
+                            <th>Diskon Dealer<span class="zh">经销商折扣率</span></th>
                             <th>Harga Dealer Setelah Pajak RMB<span class="zh">代理商税后价 RMB</span></th>
                             <th>Harga Dealer Setelah Pajak IDR<span class="zh">代理商税后价 IDR（10万取整）</span></th>
                         </tr>

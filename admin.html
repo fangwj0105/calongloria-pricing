@@ -565,6 +565,7 @@
                 sort_order: index + 1,
                 name: m.name,
                 retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
+                dealer_discount: Math.round(numberValue(m.dealerDiscount, 85) * 100) / 100,
                 dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100
             }));
             let remove = await sb.from('published_prices').delete().gt('id', 0);
