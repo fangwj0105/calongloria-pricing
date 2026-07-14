@@ -112,6 +112,10 @@
         return `${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:1})}%`;
     }
 
+    function formatDealerAllowance(discountRate) {
+        return formatPercent(Math.max(0, 100 - Number(discountRate || 0)));
+    }
+
     function roundFinalRmb(value) {
         return Math.round(Number(value || 0));
     }
@@ -245,7 +249,7 @@
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
                 <td>${formatIdr(retailIdrTax)}</td>
-                <td class="dealer-col">${formatPercent(m.dealerDiscount || 85)}</td>
+                <td class="dealer-col">${formatDealerAllowance(m.dealerDiscount || 85)}</td>
                 <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
                 <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
             </tr>`;
@@ -262,7 +266,7 @@
                             <th>Model / Spesifikasi<span class="zh">型号规格</span></th>
                             <th>Harga Ritel Setelah Pajak RMB<span class="zh">零售税后价 RMB</span></th>
                             <th>Harga Ritel Setelah Pajak IDR<span class="zh">零售税后价 IDR（10万取整）</span></th>
-                            <th>Diskon Dealer<span class="zh">经销商折扣率</span></th>
+                            <th>Ruang Diskon Dealer<span class="zh">经销商让利空间</span></th>
                             <th>Harga Dealer Setelah Pajak RMB<span class="zh">代理商税后价 RMB</span></th>
                             <th>Harga Dealer Setelah Pajak IDR<span class="zh">代理商税后价 IDR（10万取整）</span></th>
                         </tr>
