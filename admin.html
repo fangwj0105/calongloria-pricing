@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calon Gloria 远程后台</title>
+    <title>Admin Calon Gloria</title>
     <script>
         (function redirectRecoveryLink() {
             let marker = `${window.location.search}${window.location.hash}`;
@@ -15,9 +15,12 @@
         body { margin: 0; padding: 20px; background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .container { max-width: 1280px; margin: auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
+        .zh { display: block; margin-top: 2px; color: #6e6e73; font-size: 0.86em; font-weight: 500; }
+        button .zh, th .zh, .tabs .zh { font-size: 0.82em; }
         .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
         .panel { border: 1px solid #e5e5ea; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #fbfbfd; }
         .login-grid, .account-grid, .settings-grid { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+        .import-grid { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 10px; align-items: end; }
         .input-group { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; max-width: 520px; }
         .input-group input { width: 38%; }
         label { display: block; margin-bottom: 5px; color: #555; font-weight: 700; font-size: 0.84em; }
@@ -60,30 +63,31 @@
         .status-bar:empty { display: none; }
         .hidden { display: none; }
         .note { color: #666; font-size: 0.88em; line-height: 1.5; }
+        .import-file-name { color: #555; font-size: 0.86em; line-height: 1.4; }
         .error { color: #d64045; font-weight: 700; }
         .success { color: #1f6f35; font-weight: 700; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Calon Gloria 远程后台</h1>
+    <h1>Admin Calon Gloria<span class="zh">Calon Gloria 远程后台</span></h1>
 
-    <div id="config-warning" class="panel error hidden">尚未配置 Supabase。请先填写 supabase-config.js 里的 url 与 anonKey。</div>
+    <div id="config-warning" class="panel error hidden">Supabase belum dikonfigurasi. Isi url dan anonKey di supabase-config.js. / 尚未配置 Supabase。请先填写 supabase-config.js 里的 url 与 anonKey。</div>
     <div id="status" class="status status-bar"></div>
 
     <div id="login-panel" class="panel">
         <div class="login-grid">
             <div>
-                <label for="email">邮箱</label>
+                <label for="email">Email<span class="zh">邮箱</span></label>
                 <input id="email" type="email" autocomplete="username">
             </div>
             <div>
-                <label for="password">密码</label>
+                <label for="password">Kata Sandi<span class="zh">密码</span></label>
                 <input id="password" type="password" autocomplete="current-password">
             </div>
-            <button onclick="signIn()">登录后台</button>
-            <button class="secondary" onclick="sendPasswordReset()">发送重置邮件</button>
-            <a href="/" style="align-self:center; color:#0055b3; font-weight:700;">返回前端价格页</a>
+            <button onclick="signIn()">Masuk Admin<span class="zh">登录后台</span></button>
+            <button class="secondary" onclick="sendPasswordReset()">Kirim Email Reset<span class="zh">发送重置邮件</span></button>
+            <a href="/" style="align-self:center; color:#0055b3; font-weight:700;">Kembali ke Halaman Harga<span class="zh">返回前端价格页</span></a>
         </div>
     </div>
 
@@ -93,62 +97,72 @@
                 <strong id="user-label"></strong>
                 <span id="role-label" class="note"></span>
             </div>
-            <button class="secondary" onclick="signOut()">退出登录</button>
+            <button class="secondary" onclick="signOut()">Keluar<span class="zh">退出登录</span></button>
         </div>
-        <div id="not-owner" class="panel error hidden">当前账号没有后台编辑权限。请使用 owner 账号登录。</div>
+        <div id="not-owner" class="panel error hidden">Akun ini tidak memiliki izin edit admin. Gunakan akun owner. / 当前账号没有后台编辑权限。请使用 owner 账号登录。</div>
 
         <div id="owner-console" class="hidden">
             <div class="tabs">
-                <button id="tab-pricing" class="active" onclick="switchTab('pricing')">模组一：定价矩阵</button>
-                <button id="tab-standard" onclick="switchTab('standard')">模组二：年度销量目标</button>
-                <button id="tab-accounts" onclick="switchTab('accounts')">账号权限</button>
-                <button id="tab-access" onclick="switchTab('access')">前端设置</button>
+                <button id="tab-pricing" class="active" onclick="switchTab('pricing')">Modul 1: Matriks Harga<span class="zh">模组一：定价矩阵</span></button>
+                <button id="tab-standard" onclick="switchTab('standard')">Modul 2: Target Penjualan Tahunan<span class="zh">模组二：年度销量目标</span></button>
+                <button id="tab-accounts" onclick="switchTab('accounts')">Izin Akun<span class="zh">账号权限</span></button>
+                <button id="tab-access" onclick="switchTab('access')">Pengaturan Halaman Harga<span class="zh">前端设置</span></button>
             </div>
 
             <div id="view-pricing">
                 <div class="bar">
-                    <div class="note">保存完整后台模型后，点击“发布前端价格”会只发布型号、零售未税价、代理未税价给前端展示。</div>
+                    <div class="note">Setelah model admin lengkap disimpan, tombol publikasi hanya mengirim model, harga ritel sebelum PPN, dan harga dealer sebelum PPN untuk halaman harga.<span class="zh">保存完整后台模型后，点击发布前端价格会只发布型号、零售未税价、代理未税价给前端展示。</span></div>
                     <div>
-                        <button class="secondary" onclick="loadModels()">刷新后台数据</button>
-                        <button id="save-models-btn" onclick="saveModels()">保存后台模型</button>
-                        <button id="publish-prices-btn" onclick="publishPrices()">发布前端价格</button>
+                        <button class="secondary" onclick="loadModels()">Muat Ulang Data<span class="zh">刷新后台数据</span></button>
+                        <button id="save-models-btn" onclick="saveModels()">Simpan Model<span class="zh">保存后台模型</span></button>
+                        <button id="publish-prices-btn" onclick="publishPrices()">Publikasikan Harga<span class="zh">发布前端价格</span></button>
                     </div>
+                </div>
+                <div class="panel import-grid">
+                    <div>
+                        <label for="cost-import-file">Impor Template Biaya Landed<span class="zh">导入到岸成本模板</span></label>
+                        <input id="cost-import-file" type="file" accept=".csv,.xlsx,.xls" onchange="handleCostImportFileChange(this)">
+                        <div id="cost-import-file-name" class="import-file-name">Belum ada file dipilih.<span class="zh">尚未选择文件。</span></div>
+                    </div>
+                    <button type="button" class="secondary" onclick="downloadCostTemplate()">Unduh Template<span class="zh">下载表格模板</span></button>
+                    <button type="button" onclick="importCostTemplate()">Impor Model + Biaya<span class="zh">导入型号与到岸成本</span></button>
+                    <div class="note" style="grid-column:1 / -1;">File impor hanya menerima template dengan kolom tetap: <b>Model / Spesifikasi / 型号规格</b> dan <b>Biaya Landed Bersih IDR / 到岸纯成本 IDR</b>. Nilai biaya otomatis dibulatkan ke 3 digit utama agar selaras dengan format harga kompetitor.<span class="zh">导入文件限定为此表格模板，只抓取固定字段并填充到对应数据。到岸纯成本会自动四舍五入保留前三位有效数字，与竞品价格表达保持一致。</span></div>
+                    <div id="cost-import-status" class="status" style="grid-column:1 / -1;"></div>
                 </div>
                 <div class="table-responsive">
                     <table class="mix-table">
                         <thead>
                             <tr>
-                                <th style="width: 11%;">型号规格</th>
-                                <th style="width: 10%;">定价方式</th>
-                                <th style="width: 9%;">到岸纯成本<br>(RMB)</th>
-                                <th style="width: 10%;">竞品价格<br>(含税 IDR)</th>
-                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品税前<br>(IDR)</th>
-                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">竞品税前<br>(RMB)</th>
-                                <th style="width: 8%;">定价比例<br>(%)</th>
-                                <th style="width: 8%; background:#fff8f0; color:#9a5b00;">倒推目标<br>毛利率(%)</th>
-                                <th style="width: 9%; background:#eef7ff; color:#0055b3;">本品定价<br>(RMB)</th>
-                                <th style="width: 8%; background:#f7fff5; color:#2e7d32;">代理折扣<br>(%)</th>
-                                <th style="width: 9%; background:#f7fff5; color:#2e7d32;">代理价<br>(RMB)</th>
-                                <th class="commission-col" style="width: 9%;">佣金比例<br>(按本品定价)</th>
-                                <th style="width: 10%; background:#fff0f0; color:#d64045;">实际毛利率<br>(按代理价)</th>
-                                <th style="width: 4%;">操作</th>
+                                <th style="width: 11%;">Model / Spesifikasi<span class="zh">型号规格</span></th>
+                                <th style="width: 10%;">Metode Harga<span class="zh">定价方式</span></th>
+                                <th style="width: 9%;">Biaya Landed Bersih<br>(IDR)<span class="zh">到岸纯成本（IDR）</span></th>
+                                <th style="width: 10%;">Harga Kompetitor<br>(Termasuk PPN IDR)<span class="zh">竞品价格（含税 IDR）</span></th>
+                                <th style="width: 9%; background:#f7fbff; color:#0055b3;">Harga Kompetitor<br>Sebelum PPN (IDR)<span class="zh">竞品税前（IDR）</span></th>
+                                <th style="width: 8%;">Rasio Harga<br>(%)<span class="zh">定价比例</span></th>
+                                <th style="width: 8%; background:#fff8f0; color:#9a5b00;">Target Margin<br>(%)<span class="zh">倒推目标毛利率</span></th>
+                                <th style="width: 9%; background:#eef7ff; color:#0055b3;">Harga Produk<br>Sebelum PPN (IDR)<span class="zh">本品定价（未税 IDR）</span></th>
+                                <th style="width: 8%; background:#f7fff5; color:#2e7d32;">Diskon Dealer<br>(%)<span class="zh">代理折扣</span></th>
+                                <th style="width: 9%; background:#f7fff5; color:#2e7d32;">Harga Dealer<br>Sebelum PPN (IDR)<span class="zh">代理价（未税 IDR）</span></th>
+                                <th class="commission-col" style="width: 9%;">Komisi<br>(dari Harga Produk)<span class="zh">佣金比例（按本品定价）</span></th>
+                                <th style="width: 10%; background:#fff0f0; color:#d64045;">Margin Aktual<br>(dari Harga Dealer)<span class="zh">实际毛利率（按代理价）</span></th>
+                                <th style="width: 4%;">Aksi<span class="zh">操作</span></th>
                             </tr>
                         </thead>
                         <tbody id="pricing-tbody"></tbody>
                     </table>
                 </div>
-                <button class="add-btn" onclick="addModel()">+ 新增产品型号</button>
+                <button class="add-btn" onclick="addModel()">+ Tambah Model Produk<span class="zh">新增产品型号</span></button>
                 <div class="result-box" id="pricing-out"></div>
             </div>
 
             <div id="view-standard" class="hidden">
                 <div class="panel">
                     <div class="input-group">
-                        <label for="stdFixedCost">年度固定成本总额 (RMB):</label>
+                        <label for="stdFixedCost">Total Biaya Tetap Tahunan (IDR):<span class="zh">年度固定成本总额（IDR）：</span></label>
                         <input type="number" id="stdFixedCost" value="200000" oninput="calcAll()">
                     </div>
                     <div class="input-group">
-                        <label for="targetProfit">年度目标利润 (RMB):</label>
+                        <label for="targetProfit">Target Laba Tahunan (IDR):<span class="zh">年度目标利润（IDR）：</span></label>
                         <input type="number" id="targetProfit" value="0" oninput="calcAll()">
                     </div>
                 </div>
@@ -156,12 +170,12 @@
                     <table class="mix-table">
                         <thead>
                             <tr>
-                                <th style="width: 20%;">产品型号</th>
-                                <th style="width: 16%;">代理价<br>(RMB)</th>
-                                <th style="width: 16%;">实际毛利率<br>(按代理价)</th>
-                                <th style="width: 16%;">单台毛利<br>(RMB)</th>
-                                <th style="width: 16%;">销售组合<br>(%)</th>
-                                <th style="width: 16%;">年度目标销量<br>(台)</th>
+                                <th style="width: 20%;">Model Produk<span class="zh">产品型号</span></th>
+                                <th style="width: 16%;">Harga Dealer<br>(IDR)<span class="zh">代理价（IDR）</span></th>
+                                <th style="width: 16%;">Margin Aktual<br>(dari Harga Dealer)<span class="zh">实际毛利率（按代理价）</span></th>
+                                <th style="width: 16%;">Margin per Unit<br>(IDR)<span class="zh">单台毛利（IDR）</span></th>
+                                <th style="width: 16%;">Komposisi Penjualan<br>(%)<span class="zh">销售组合</span></th>
+                                <th style="width: 16%;">Target Penjualan Tahunan<br>(Unit)<span class="zh">年度目标销量（台）</span></th>
                             </tr>
                         </thead>
                         <tbody id="standard-tbody"></tbody>
@@ -172,34 +186,35 @@
 
             <div id="view-accounts" class="hidden">
                 <div class="panel note">
-                    先在 Supabase Auth 里邀请/创建用户，再把该用户的 UUID 和邮箱加入这里。`owner` 可以编辑后台，`viewer` 只能在前端私密模式下查看价格。
+                    Buat atau undang pengguna di Supabase Auth, lalu masukkan UUID dan email di sini. `owner` dapat mengedit admin, sedangkan `viewer` hanya dapat melihat halaman harga privat.
+                    <span class="zh">先在 Supabase Auth 里邀请或创建用户，再把该用户的 UUID 和邮箱加入这里。`owner` 可以编辑后台，`viewer` 只能在前端私密模式下查看价格。</span>
                 </div>
                 <div class="account-grid panel">
                     <div>
-                        <label for="profile-user-id">用户 UUID</label>
+                        <label for="profile-user-id">UUID Pengguna<span class="zh">用户 UUID</span></label>
                         <input id="profile-user-id" placeholder="auth.users.id">
                     </div>
                     <div>
-                        <label for="profile-email">邮箱</label>
+                        <label for="profile-email">Email<span class="zh">邮箱</span></label>
                         <input id="profile-email" type="email">
                     </div>
                     <div>
-                        <label for="profile-role">角色</label>
+                        <label for="profile-role">Peran<span class="zh">角色</span></label>
                         <select id="profile-role">
                             <option value="viewer">viewer</option>
                             <option value="owner">owner</option>
                         </select>
                     </div>
-                    <button onclick="upsertProfile()">保存账号权限</button>
+                    <button onclick="upsertProfile()">Simpan Izin Akun<span class="zh">保存账号权限</span></button>
                 </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
-                                <th>邮箱</th>
-                                <th>用户 UUID</th>
-                                <th>角色</th>
-                                <th>启用</th>
+                                <th>Email<span class="zh">邮箱</span></th>
+                                <th>UUID Pengguna<span class="zh">用户 UUID</span></th>
+                                <th>Peran<span class="zh">角色</span></th>
+                                <th>Aktif<span class="zh">启用</span></th>
                             </tr>
                         </thead>
                         <tbody id="profile-body"></tbody>
@@ -209,18 +224,18 @@
 
             <div id="view-access" class="hidden">
                 <div class="panel">
-                    <div class="note">前端固定为授权账号登录访问。价格页只展示后台发布价格，汇率和 PPN 在这里维护。</div>
+                    <div class="note">Halaman harga menggunakan akses akun resmi. Nilai harga yang dipublikasikan dari admin sudah dalam IDR; kurs dan PPN hanya dipakai halaman harga untuk tampilan konversi.<span class="zh">前端固定为授权账号登录访问。后台发布的价格已经是 IDR，汇率和 PPN 只用于前端展示换算。</span></div>
                 </div>
                 <div class="settings-grid panel">
                     <div>
-                        <label for="market-rate">IDR/RMB 汇率</label>
+                        <label for="market-rate">Kurs IDR/RMB<span class="zh">IDR/RMB 汇率</span></label>
                         <input id="market-rate" type="number" value="2650">
                     </div>
                     <div>
-                        <label for="market-ppn">PPN 增值税率 (%)</label>
+                        <label for="market-ppn">Tarif PPN (%)<span class="zh">PPN 增值税率</span></label>
                         <input id="market-ppn" type="number" value="11">
                     </div>
-                    <button onclick="saveFrontendSettings()">保存前端设置</button>
+                    <button onclick="saveFrontendSettings()">Simpan Pengaturan<span class="zh">保存前端设置</span></button>
                 </div>
             </div>
         </div>
@@ -238,10 +253,21 @@
     let nextId = 1;
     let marketSettings = { rate: 2650, ppnRate: 11 };
     const DEFAULT_COMMISSION_RATE = 5;
+    const COST_TEMPLATE_HEADERS = [
+        'Model / Spesifikasi / 型号规格',
+        'Biaya Landed Bersih IDR / 到岸纯成本 IDR'
+    ];
 
     function setStatus(message, kind = '') {
         let el = document.getElementById('status');
         el.className = `status status-bar ${kind}`;
+        el.textContent = message || '';
+    }
+
+    function setImportStatus(message, kind = '') {
+        let el = document.getElementById('cost-import-status');
+        if (!el) return;
+        el.className = `status ${kind}`;
         el.textContent = message || '';
     }
 
@@ -254,15 +280,15 @@
     function setButtonBusy(buttonId, busyText, isBusy) {
         let button = document.getElementById(buttonId);
         if (!button) return null;
-        if (button.dataset.idleText === undefined) button.dataset.idleText = button.textContent;
+        if (button.dataset.idleHtml === undefined) button.dataset.idleHtml = button.innerHTML;
         if (isBusy) {
             pulseButton(button);
             button.disabled = true;
-            button.textContent = busyText;
+            button.innerHTML = escapeHtml(busyText);
             return button;
         }
         button.disabled = false;
-        button.textContent = button.dataset.idleText;
+        button.innerHTML = button.dataset.idleHtml;
         return button;
     }
 
@@ -307,7 +333,7 @@
         }
         let email = document.getElementById('email').value.trim();
         if (!email) {
-            setStatus('请先填写需要重置密码的邮箱。', 'error');
+            setStatus('Isi email yang akan menerima reset kata sandi. / 请先填写需要重置密码的邮箱。', 'error');
             return;
         }
         let redirectTo = `${window.location.origin}/reset-password.html`;
@@ -316,7 +342,7 @@
             setStatus(error.message, 'error');
             return;
         }
-        setStatus('重置密码邮件已发送，请打开最新邮件链接。', 'success');
+        setStatus('Email reset kata sandi sudah dikirim. Buka tautan terbaru dari email tersebut. / 重置密码邮件已发送，请打开最新邮件链接。', 'success');
     }
 
     async function signOut() {
@@ -349,19 +375,19 @@
             document.getElementById('login-panel').classList.remove('hidden');
             document.getElementById('app').classList.add('hidden');
             if (profile?.role === 'viewer' && profile?.is_active) {
-                setStatus('该账号仅可访问前端价格页，正在跳转...', 'success');
+                setStatus('Akun ini hanya dapat mengakses halaman harga. Mengalihkan... / 该账号仅可访问前端价格页，正在跳转...', 'success');
                 let frontendUrl = new URL('index.html', window.location.href).href;
                 window.setTimeout(() => window.location.replace(frontendUrl), 350);
                 return;
             }
             await sb.auth.signOut();
-            setStatus('当前账号没有后台权限。请使用 owner 账号登录。', 'error');
+            setStatus('Akun ini tidak memiliki izin admin. Gunakan akun owner. / 当前账号没有后台权限。请使用 owner 账号登录。', 'error');
             return;
         }
         document.getElementById('login-panel').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         document.getElementById('user-label').textContent = currentUser.email || currentUser.id;
-        document.getElementById('role-label').textContent = profile ? ` / ${profile.role}` : ' / 未授权';
+        document.getElementById('role-label').textContent = profile ? ` / ${profile.role}` : ' / belum diotorisasi / 未授权';
         document.getElementById('not-owner').classList.toggle('hidden', isOwner);
         document.getElementById('owner-console').classList.toggle('hidden', !isOwner);
         if (isOwner) await loadModels();
@@ -379,7 +405,7 @@
 
     function normalizeModel(m, index = 0) {
         m.id = Number(m.id || index + 1);
-        m.name = m.name || '新型号';
+        m.name = m.name || 'Model Baru';
         m.cost = numberValue(m.cost);
         m.compPrice = numberValue(m.compPrice);
         m.priceRatio = numberValue(m.priceRatio, 85);
@@ -400,13 +426,12 @@
         let targetMarginRate = numberValue(m.targetMarginRate, 50) / 100;
         let taxMultiplier = 1 + (numberValue(marketSettings.ppnRate, 11) / 100);
         m.compPriceNetIdr = taxMultiplier > 0 ? numberValue(m.compPrice) / taxMultiplier : 0;
-        m.compPriceRmb = m.compPriceNetIdr / numberValue(marketSettings.rate, 2650);
         if (method === 'margin') {
             let denominator = dealerDiscount > 0 ? 1 - targetMarginRate - (commissionRate / dealerDiscount) : 0;
             m.dealerPrice = denominator > 0 ? numberValue(m.cost) / denominator : 0;
             m.ourPrice = dealerDiscount > 0 ? m.dealerPrice / dealerDiscount : 0;
         } else {
-            m.ourPrice = m.compPriceRmb * (numberValue(m.priceRatio, 85) / 100);
+            m.ourPrice = m.compPriceNetIdr * (numberValue(m.priceRatio, 85) / 100);
             m.dealerPrice = m.ourPrice * dealerDiscount;
         }
         m.commissionCost = m.ourPrice * commissionRate;
@@ -430,14 +455,13 @@
                 <td><input type="text" value="${escapeHtml(m.name || '')}" oninput="updateM(${m.id}, 'name', this.value)"></td>
                 <td>
                     <select onchange="updateM(${m.id}, 'pricingMethod', this.value)">
-                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>竞品对标法</option>
-                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>毛利率倒推法</option>
+                        <option value="benchmark" ${m.pricingMethod === 'benchmark' ? 'selected' : ''}>Benchmark Kompetitor / 竞品对标法</option>
+                        <option value="margin" ${m.pricingMethod === 'margin' ? 'selected' : ''}>Target Margin / 毛利率倒推法</option>
                     </select>
                 </td>
                 <td><input type="number" value="${m.cost || 0}" oninput="updateM(${m.id}, 'cost', this.value)"></td>
                 <td><input type="number" value="${m.compPrice || 0}" placeholder="Rp" oninput="updateM(${m.id}, 'compPrice', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
                 <td style="background:#f7fbff;"><span id="calc-comp-net-idr-${m.id}" class="readonly">0</span></td>
-                <td style="background:#f7fbff;"><span id="calc-comp-rmb-${m.id}" class="readonly">0</span></td>
                 <td><input type="number" value="${m.priceRatio || 85}" oninput="updateM(${m.id}, 'priceRatio', this.value)" ${m.pricingMethod === 'benchmark' ? '' : 'disabled'}></td>
                 <td style="background:#fff8f0;"><input type="number" value="${m.targetMarginRate || 50}" step="0.1" oninput="updateM(${m.id}, 'targetMarginRate', this.value)" ${m.pricingMethod === 'margin' ? '' : 'disabled'}></td>
                 <td style="background:#eef7ff;"><span id="calc-price-${m.id}" class="readonly">0</span></td>
@@ -445,7 +469,7 @@
                 <td style="background:#f7fff5;"><span id="calc-dealer-price-${m.id}" class="readonly">0</span></td>
                 <td class="commission-col"><input class="commission-input" type="number" value="${m.commissionRate ?? 5}" step="0.1" oninput="updateM(${m.id}, 'commissionRate', this.value)"></td>
                 <td style="background:#fff0f0;"><span id="calc-margin-${m.id}" class="readonly">0</span></td>
-                <td><button class="del-btn" onclick="delM(${m.id})" title="删除此行">x</button></td>
+                <td><button class="del-btn" onclick="delM(${m.id})" title="Hapus baris / 删除此行">x</button></td>
             </tr>
         `).join('');
 
@@ -486,7 +510,7 @@
     function addModel() {
         models.push({
             id: nextId++,
-            name: '新型号',
+            name: 'Model Baru',
             cost: 0,
             compPrice: 0,
             pricingMethod: 'margin',
@@ -502,7 +526,7 @@
 
     function delM(id) {
         if (models.length <= 1) {
-            alert('至少保留一款机型。');
+            alert('Minimal harus ada satu model. / 至少保留一款机型。');
             return;
         }
         models = models.filter(x => Number(x.id) !== Number(id));
@@ -522,22 +546,27 @@
         }
         models = (data || []).map((row, index) => normalizeModel({ id: row.id, ...row.payload }, index));
         renderRows();
-        setStatus(models.length ? '后台模型已加载。' : '后台模型为空，请先执行 seed SQL 导入初始模型。');
+        setStatus(models.length ? 'Model admin berhasil dimuat. / 后台模型已加载。' : 'Model admin kosong. Jalankan seed SQL untuk mengimpor model awal. / 后台模型为空，请先执行 seed SQL 导入初始模型。');
     }
 
     async function saveModels() {
-        setButtonBusy('save-models-btn', '保存中...', true);
-        setStatus('正在保存后台模型...', '');
+        setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', true);
+        setStatus('Menyimpan model admin... / 正在保存后台模型...', '');
         let sb = getClient();
         try {
             calcAll();
+            let issues = getCostScaleIssues(models);
+            if (issues.length) {
+                setStatus(buildCostScaleIssueMessage(issues), 'error');
+                setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', false);
+                return;
+            }
             let rows = models.map((m, index) => {
                 let id = Number(m.id || index + 1);
                 let payload = { ...m, id };
                 delete payload.ourPrice;
                 delete payload.dealerPrice;
                 delete payload.compPriceNetIdr;
-                delete payload.compPriceRmb;
                 delete payload.commissionCost;
                 delete payload.margin;
                 delete payload.marginRate;
@@ -548,18 +577,24 @@
                 setStatus(error.message, 'error');
                 return;
             }
-            setStatus(`后台模型已保存。保存时间：${new Date().toLocaleString()}`, 'success');
+            setStatus(`Model admin sudah disimpan. Waktu simpan: ${new Date().toLocaleString()} / 后台模型已保存。保存时间：${new Date().toLocaleString()}`, 'success');
         } finally {
-            setButtonBusy('save-models-btn', '保存中...', false);
+            setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', false);
         }
     }
 
     async function publishPrices() {
-        setButtonBusy('publish-prices-btn', '发布中...', true);
-        setStatus('正在发布前端价格...', '');
+        setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', true);
+        setStatus('Mempublikasikan harga... / 正在发布前端价格...', '');
         let sb = getClient();
         try {
             calcAll();
+            let issues = getCostScaleIssues(models);
+            if (issues.length) {
+                setStatus(buildCostScaleIssueMessage(issues), 'error');
+                setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', false);
+                return;
+            }
             let rows = models.map((m, index) => ({
                 id: Number(m.id || index + 1),
                 sort_order: index + 1,
@@ -578,18 +613,287 @@
                 setStatus(error.message, 'error');
                 return;
             }
-            setStatus(`前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
+            setStatus(`Harga sudah dipublikasikan. Muat ulang halaman harga untuk melihat data terbaru. Waktu publikasi: ${new Date().toLocaleString()} / 前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
         } finally {
-            setButtonBusy('publish-prices-btn', '发布中...', false);
+            setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', false);
         }
-    }
-
-    function formatRmb(value) {
-        return `¥${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
     }
 
     function formatIdr(value) {
         return `Rp ${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+
+    function handleCostImportFileChange(input) {
+        let fileNameEl = document.getElementById('cost-import-file-name');
+        let file = input?.files?.[0];
+        if (fileNameEl) {
+            fileNameEl.innerHTML = file
+                ? `${escapeHtml(file.name)}<span class="zh">已选择文件。</span>`
+                : `Belum ada file dipilih.<span class="zh">尚未选择文件。</span>`;
+        }
+        setImportStatus(file ? 'File dipilih. Klik tombol impor untuk membaca template. / 已选择文件，请点击导入按钮读取模板。' : '');
+    }
+
+    function downloadCostTemplate() {
+        let rows = [COST_TEMPLATE_HEADERS];
+        let csv = rows.map(row => row.map(csvCell).join(',')).join('\n');
+        let blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'calon-gloria-landed-cost-template.csv';
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        link.remove();
+    }
+
+    function csvCell(value) {
+        let text = String(value ?? '');
+        return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    async function importCostTemplate() {
+        let input = document.getElementById('cost-import-file');
+        let file = input?.files?.[0];
+        if (!file) {
+            setImportStatus('Pilih file template terlebih dahulu. / 请先选择表格模板文件。', 'error');
+            setStatus('Pilih file template terlebih dahulu. / 请先选择表格模板文件。', 'error');
+            return;
+        }
+        let rows;
+        let name = file.name.toLowerCase();
+        try {
+            setImportStatus('Membaca file template... / 正在读取表格模板...', '');
+            if (name.endsWith('.csv')) {
+                rows = parseCsvRows(await file.text());
+            } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+                await ensureXlsxLibrary();
+                let workbook = window.XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                let sheet = workbook.Sheets[workbook.SheetNames[0]];
+                rows = window.XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            } else {
+                setImportStatus('Format file tidak sesuai. Gunakan CSV, XLS, atau XLSX dari template. / 文件格式不符合要求，请使用模板导出的 CSV、XLS 或 XLSX。', 'error');
+                setStatus('Format file tidak sesuai. Gunakan CSV, XLS, atau XLSX dari template. / 文件格式不符合要求，请使用模板导出的 CSV、XLS 或 XLSX。', 'error');
+                return;
+            }
+            let imported = extractCostTemplateRows(rows);
+            validateCostScaleAgainstModels(imported);
+            applyCostTemplateRows(imported);
+        } catch (error) {
+            let message = `Gagal mengimpor template: ${error.message}`;
+            setImportStatus(message, 'error');
+            setStatus(message, 'error');
+        }
+    }
+
+    function ensureXlsxLibrary() {
+        if (window.XLSX) return Promise.resolve();
+        if (window.__xlsxLoadingPromise) return window.__xlsxLoadingPromise;
+        setImportStatus('Memuat pembaca Excel... / 正在加载 Excel 解析器...', '');
+        window.__xlsxLoadingPromise = new Promise((resolve, reject) => {
+            let script = document.createElement('script');
+            let timeout = window.setTimeout(() => {
+                script.remove();
+                reject(new Error('Pembaca Excel belum tersedia. Gunakan template CSV, atau coba lagi saat jaringan tersedia / Excel 解析器暂不可用，请使用 CSV 模板，或在网络可用时重试'));
+            }, 10000);
+            script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+            script.onload = () => {
+                window.clearTimeout(timeout);
+                resolve();
+            };
+            script.onerror = () => {
+                window.clearTimeout(timeout);
+                reject(new Error('Pembaca Excel gagal dimuat. Gunakan template CSV, atau coba lagi saat jaringan tersedia / Excel 解析器加载失败，请使用 CSV 模板，或在网络可用时重试'));
+            };
+            document.head.appendChild(script);
+        }).finally(() => {
+            window.__xlsxLoadingPromise = null;
+        });
+        return window.__xlsxLoadingPromise;
+    }
+
+    function parseCsvRows(text) {
+        let rows = [];
+        let row = [];
+        let cell = '';
+        let inQuotes = false;
+        let normalized = String(text || '').replace(/^\uFEFF/, '');
+        for (let i = 0; i < normalized.length; i += 1) {
+            let char = normalized[i];
+            let next = normalized[i + 1];
+            if (char === '"') {
+                if (inQuotes && next === '"') {
+                    cell += '"';
+                    i += 1;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                row.push(cell);
+                cell = '';
+            } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                if (char === '\r' && next === '\n') i += 1;
+                row.push(cell);
+                rows.push(row);
+                row = [];
+                cell = '';
+            } else {
+                cell += char;
+            }
+        }
+        row.push(cell);
+        rows.push(row);
+        return rows.filter(items => items.some(value => String(value || '').trim() !== ''));
+    }
+
+    function extractCostTemplateRows(rows) {
+        if (!Array.isArray(rows) || !rows.length) {
+            throw new Error('Template kosong / 模板为空');
+        }
+        let headerIndex = rows.findIndex(row => row.some(value => String(value || '').trim()));
+        if (headerIndex < 0) throw new Error('Header template tidak ditemukan / 未找到模板表头');
+        let headers = rows[headerIndex].map(value => normalizeHeader(value));
+        let modelIndex = headers.indexOf(normalizeHeader(COST_TEMPLATE_HEADERS[0]));
+        let costIndex = headers.indexOf(normalizeHeader(COST_TEMPLATE_HEADERS[1]));
+        if (modelIndex < 0 || costIndex < 0) {
+            throw new Error(`Kolom template harus persis: ${COST_TEMPLATE_HEADERS.join(' | ')} / 模板必须包含固定字段：${COST_TEMPLATE_HEADERS.join(' | ')}`);
+        }
+        let imported = [];
+        let errors = [];
+        rows.slice(headerIndex + 1).forEach((row, index) => {
+            let lineNo = headerIndex + index + 2;
+            let modelName = String(row[modelIndex] ?? '').trim();
+            let costRaw = row[costIndex];
+            if (!modelName && String(costRaw ?? '').trim() === '') return;
+            if (!modelName) {
+                errors.push(`baris ${lineNo}: model kosong / 第 ${lineNo} 行型号为空`);
+                return;
+            }
+            let cost = parseIdrNumber(costRaw);
+            if (!Number.isFinite(cost) || cost < 0) {
+                errors.push(`baris ${lineNo}: biaya tidak valid / 第 ${lineNo} 行到岸纯成本无效`);
+                return;
+            }
+            cost = roundIdrToThreeLeadingDigits(cost);
+            imported.push({ name: modelName, cost });
+        });
+        if (errors.length) {
+            throw new Error(errors.slice(0, 5).join('; '));
+        }
+        if (!imported.length) {
+            throw new Error('Tidak ada data model yang dapat diimpor / 没有可导入的型号数据');
+        }
+        return imported;
+    }
+
+    function validateCostScaleAgainstModels(importedRows) {
+        let existingByName = new Map(models.map(m => [normalizeModelName(m.name), m]));
+        let issues = importedRows
+            .map(row => {
+                let existing = existingByName.get(normalizeModelName(row.name));
+                return getCostScaleIssue({ ...existing, name: row.name, cost: row.cost });
+            })
+            .filter(Boolean);
+        if (issues.length) {
+            throw new Error(buildCostScaleIssueMessage(issues));
+        }
+    }
+
+    function getCostScaleIssues(rows) {
+        return rows.map(getCostScaleIssue).filter(Boolean);
+    }
+
+    function getCostScaleIssue(row) {
+        let cost = numberValue(row?.cost);
+        let compPrice = numberValue(row?.compPrice);
+        let tooSmallAbsolute = cost > 0 && cost < 100000;
+        let tooSmallAgainstComp = compPrice > 0 && cost < compPrice * 0.01;
+        if (!tooSmallAbsolute && !tooSmallAgainstComp) return null;
+        return {
+            name: row?.name || 'Model Baru',
+            cost,
+            compPrice
+        };
+    }
+
+    function buildCostScaleIssueMessage(issues) {
+        let details = issues.slice(0, 8).map(issue => {
+            let compText = issue.compPrice > 0 ? `, harga kompetitor ${formatIdr(issue.compPrice)} / 竞品价 ${formatIdr(issue.compPrice)}` : '';
+            return `${issue.name}: biaya ${formatIdr(issue.cost)}${compText}`;
+        }).join('; ');
+        return `Nilai biaya terlalu kecil untuk IDR; kemungkinan masih memakai nilai RMB lama. Isi biaya landed dalam IDR penuh, misalnya 5000000, bukan 5000. Masalah: ${details} / 到岸成本数值相对 IDR 过低，疑似仍使用旧人民币数值。请填写完整 IDR 金额，例如 5000000，而不是 5000。问题项：${details}`;
+    }
+
+    function normalizeHeader(value) {
+        return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function parseIdrNumber(value) {
+        if (typeof value === 'number') return value;
+        let text = String(value ?? '')
+            .trim()
+            .replace(/^rp\.?\s*/i, '')
+            .replace(/\s+/g, '');
+        if (!text) return NaN;
+        if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(text)) {
+            return Number(text.replace(/\./g, '').replace(',', '.'));
+        }
+        if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text)) {
+            return Number(text.replace(/,/g, ''));
+        }
+        if (text.includes(',') && !text.includes('.')) text = text.replace(',', '.');
+        return Number(text.replace(/,/g, ''));
+    }
+
+    function roundIdrToThreeLeadingDigits(value) {
+        let amount = Math.round(numberValue(value));
+        if (!Number.isFinite(amount) || amount === 0) return amount;
+        let sign = amount < 0 ? -1 : 1;
+        let absAmount = Math.abs(amount);
+        let digits = Math.floor(Math.log10(absAmount)) + 1;
+        if (digits <= 3) return sign * absAmount;
+        let factor = 10 ** (digits - 3);
+        return sign * Math.round(absAmount / factor) * factor;
+    }
+
+    function applyCostTemplateRows(importedRows) {
+        let updated = 0;
+        let added = 0;
+        let byName = new Map(models.map(m => [normalizeModelName(m.name), m]));
+        importedRows.forEach(row => {
+            let key = normalizeModelName(row.name);
+            let existing = byName.get(key);
+            if (existing) {
+                existing.name = row.name;
+                existing.cost = row.cost;
+                updated += 1;
+            } else {
+                let model = {
+                    id: nextId++,
+                    name: row.name,
+                    cost: row.cost,
+                    compPrice: 0,
+                    pricingMethod: 'margin',
+                    priceRatio: 85,
+                    targetMarginRate: 50,
+                    dealerDiscount: 85,
+                    commissionRate: DEFAULT_COMMISSION_RATE,
+                    mixShare: 0,
+                    targetQty: 0
+                };
+                models.push(model);
+                byName.set(key, model);
+                added += 1;
+            }
+        });
+        renderRows();
+        let message = `Template berhasil diimpor: ${updated} diperbarui, ${added} ditambahkan. Klik Simpan Model untuk menyimpan ke backend. / 模板导入成功：更新 ${updated} 条，新增 ${added} 条。请点击保存后台模型写入后台。`;
+        setImportStatus(message, 'success');
+        setStatus(message, 'success');
+    }
+
+    function normalizeModelName(value) {
+        return String(value ?? '').trim().toLowerCase();
     }
 
     function calcAll() {
@@ -609,7 +913,6 @@
             mixTotal += Math.max(0, numberValue(m.mixShare));
 
             let compNetIdrSpan = document.getElementById(`calc-comp-net-idr-${m.id}`);
-            let compRmbSpan = document.getElementById(`calc-comp-rmb-${m.id}`);
             let priceSpan = document.getElementById(`calc-price-${m.id}`);
             let dealerPriceSpan = document.getElementById(`calc-dealer-price-${m.id}`);
             let marginSpan = document.getElementById(`calc-margin-${m.id}`);
@@ -617,13 +920,12 @@
             let stdMarginSpan = document.getElementById(`std-margin-${m.id}`);
             let stdMarginAmountSpan = document.getElementById(`std-margin-amount-${m.id}`);
             if (compNetIdrSpan) compNetIdrSpan.textContent = formatIdr(m.compPriceNetIdr);
-            if (compRmbSpan) compRmbSpan.textContent = formatRmb(m.compPriceRmb);
-            if (priceSpan) priceSpan.textContent = formatRmb(m.ourPrice);
-            if (dealerPriceSpan) dealerPriceSpan.textContent = formatRmb(m.dealerPrice);
+            if (priceSpan) priceSpan.textContent = formatIdr(m.ourPrice);
+            if (dealerPriceSpan) dealerPriceSpan.textContent = formatIdr(m.dealerPrice);
             if (marginSpan) marginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
-            if (stdDealerPriceSpan) stdDealerPriceSpan.textContent = formatRmb(m.dealerPrice);
+            if (stdDealerPriceSpan) stdDealerPriceSpan.textContent = formatIdr(m.dealerPrice);
             if (stdMarginSpan) stdMarginSpan.textContent = `${numberValue(m.marginRate).toFixed(1)}%`;
-            if (stdMarginAmountSpan) stdMarginAmountSpan.textContent = formatRmb(m.margin);
+            if (stdMarginAmountSpan) stdMarginAmountSpan.textContent = formatIdr(m.margin);
         });
 
         if (mixTotal > 0) {
@@ -660,8 +962,13 @@
 
         let pricingOut = document.getElementById('pricing-out');
         if (pricingOut) {
+            let costIssues = getCostScaleIssues(models);
+            let costWarning = costIssues.length
+                ? `<div class="tax-note error"><b>Peringatan biaya / 成本警告</b>: ${buildCostScaleIssueMessage(costIssues)}</div>`
+                : '';
             pricingOut.innerHTML =
-                `<div class="tax-note"><b>公式推演</b>：【竞品对标法】竞品税前 IDR = 竞品含税 IDR / (1 + PPN)，竞品税前 RMB = 竞品税前 IDR / IDR/RMB 汇率，本品定价 RMB = 竞品税前 RMB × 定价比例。<br>【毛利率倒推法】代理价 RMB = 到岸成本 / (1 - 倒推目标毛利率 - 佣金比例 / 代理折扣)，本品定价 RMB = 代理价 / 代理折扣。<br>【单台毛利】= 代理价 - 到岸成本 - (本品定价 × 佣金比例)，佣金比例为空或为 0 时默认按 5% 扣除。<br>【实际毛利率】= 单台毛利 / 代理价。后台仅输出未税本品定价与未税代理价；前端展示页会按 PPN 计算税后价格。物流费用已剔除，后续按具体地址/订单单独核算。</div>`;
+                costWarning +
+                `<div class="tax-note"><b>Alur Rumus / 公式推演</b>: Benchmark kompetitor memakai Harga Kompetitor Sebelum PPN IDR = Harga Kompetitor Termasuk PPN IDR / (1 + PPN), lalu Harga Produk Sebelum PPN IDR = Harga Kompetitor Sebelum PPN IDR × Rasio Harga.<br><span class="zh">竞品对标法：竞品税前 IDR = 竞品含税 IDR / (1 + PPN)，本品未税定价 IDR = 竞品税前 IDR × 定价比例。</span><br>Target margin memakai Harga Dealer IDR = Biaya Landed Bersih IDR / (1 - Target Margin - Komisi / Diskon Dealer), lalu Harga Produk IDR = Harga Dealer IDR / Diskon Dealer.<br><span class="zh">毛利率倒推法：代理价 IDR = 到岸纯成本 IDR / (1 - 倒推目标毛利率 - 佣金比例 / 代理折扣)，本品定价 IDR = 代理价 IDR / 代理折扣。</span><br>Margin per Unit = Harga Dealer - Biaya Landed Bersih - (Harga Produk × Komisi). Jika komisi kosong atau 0, sistem memakai default 5%.<br><span class="zh">单台毛利 = 代理价 - 到岸纯成本 -（本品定价 × 佣金比例）。佣金比例为空或为 0 时默认按 5% 扣除。</span><br>Margin Aktual = Margin per Unit / Harga Dealer. Admin hanya memublikasikan harga sebelum PPN dalam IDR; halaman harga menambahkan PPN untuk tampilan akhir. Biaya logistik tidak dimasukkan dan dihitung terpisah per alamat atau pesanan.<br><span class="zh">实际毛利率 = 单台毛利 / 代理价。后台仅输出未税本品定价与未税代理价，前端展示页会按 PPN 计算税后价格。物流费用已剔除，后续按具体地址或订单单独核算。</span></div>`;
         }
 
         let standardOut = document.getElementById('standard-out');
@@ -670,8 +977,8 @@
         let beProgress = fc > 0 ? (totalContribution / fc) * 100 : 0;
         let progressColor = weightedMargin > 0 ? '#2e7d32' : '#d64045';
         let progressStatusText = weightedMargin > 0
-            ? `<span class="success-highlight">按当前产品组合，预计达成年利润: ${formatRmb(netProfit)}</span>`
-            : `<span class="highlight">当前组合的加权单台毛利不足，无法反推有效销量目标</span>`;
+            ? `<span class="success-highlight">Dengan komposisi produk saat ini, estimasi laba tahunan: ${formatIdr(netProfit)}<span class="zh">按当前产品组合，预计达成年利润：${formatIdr(netProfit)}</span></span>`
+            : `<span class="highlight">Margin per unit tertimbang belum cukup untuk menghitung target penjualan yang valid<span class="zh">当前组合的加权单台毛利不足，无法反推有效销量目标</span></span>`;
 
         let sortedModels = [...models].filter(m => numberValue(m.margin) > 0).sort((a, b) => b.marginRate - a.marginRate);
         let whatIfHtml = '';
@@ -682,24 +989,27 @@
             let loss = dropQty * bestModel.margin;
             let makeupQty = worstModel.margin > 0 ? (loss / worstModel.margin).toFixed(1) : '0';
             whatIfHtml = `<div class="tax-note">
-                <strong>经营决策推演 (动态 What-If Analysis)：</strong><br>
-                最高实际毛利率机型是 <b>${escapeHtml(bestModel.name)}</b>，当前实际毛利率为 <b>${bestModel.marginRate.toFixed(1)}%</b>。如果该机型少卖 ${dropQty} 台，公司净利润将减少 <b>${formatRmb(loss)}</b>。<br>
-                为弥补此利润缺口，低毛利率机型 <b>${escapeHtml(worstModel.name)}</b> 需要追加 <b>${makeupQty} 台</b> 销量。<br>
-                <em>经营统计以毛利率识别产品质量，年度利润仍以单台毛利金额乘销量衡量固定成本覆盖能力。</em>
+                <strong>Simulasi Keputusan (What-If Dinamis) / 经营决策推演：</strong><br>
+                Model dengan margin aktual tertinggi adalah <b>${escapeHtml(bestModel.name)}</b>, dengan margin aktual <b>${bestModel.marginRate.toFixed(1)}%</b>. Jika model ini terjual lebih sedikit ${dropQty} unit, laba bersih perusahaan turun <b>${formatIdr(loss)}</b>.<br>
+                <span class="zh">最高实际毛利率机型是 <b>${escapeHtml(bestModel.name)}</b>，当前实际毛利率为 <b>${bestModel.marginRate.toFixed(1)}%</b>。如果该机型少卖 ${dropQty} 台，公司净利润将减少 <b>${formatIdr(loss)}</b>。</span><br>
+                Untuk menutup selisih laba tersebut, model dengan margin lebih rendah <b>${escapeHtml(worstModel.name)}</b> perlu menambah penjualan <b>${makeupQty} unit</b>.<br>
+                <span class="zh">为弥补此利润缺口，低毛利率机型 <b>${escapeHtml(worstModel.name)}</b> 需要追加 <b>${makeupQty} 台</b> 销量。</span><br>
+                <em>Statistik operasional memakai margin aktual untuk membaca kualitas produk; laba tahunan tetap dihitung dari margin per unit dikalikan volume.</em>
+                <span class="zh">经营统计以毛利率识别产品质量，年度利润仍以单台毛利金额乘销量衡量固定成本覆盖能力。</span>
             </div>`;
         }
 
         standardOut.innerHTML =
-            `<div class="result-item"><span>产品组合比例合计:</span> <span>${mixTotal.toFixed(1)}%</span></div>` +
-            `<div class="result-item"><span>加权平均代理价:</span> <span>${formatRmb(weightedDealerPrice)}</span></div>` +
-            `<div class="result-item"><span>加权平均毛利率:</span> <span>${weightedMarginRate.toFixed(1)}%</span></div>` +
-            `<div class="result-item"><span>加权平均单台毛利:</span> <span>${formatRmb(weightedMargin)}</span></div>` +
-            `<div class="result-item"><span>年度固定成本:</span> <span>${formatRmb(fc)}</span></div>` +
-            `<div class="result-item"><span>年度目标利润:</span> <span>${formatRmb(targetProfit)}</span></div>` +
-            `<div class="result-item" style="border-top:1.5px solid #ccc; padding-top:10px;"><span><b>年度目标总销量:</b></span> <span style="font-size:1.1em;"><b>${targetTotalQty.toLocaleString(undefined, { maximumFractionDigits: 0 })} 台</b></span></div>` +
-            `<div class="result-item"><span>目标达成状态:</span> ${progressStatusText}</div>` +
+            `<div class="result-item"><span>Total Komposisi Produk:<span class="zh">产品组合比例合计：</span></span> <span>${mixTotal.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>Harga Dealer Rata-Rata Tertimbang:<span class="zh">加权平均代理价：</span></span> <span>${formatIdr(weightedDealerPrice)}</span></div>` +
+            `<div class="result-item"><span>Margin Rata-Rata Tertimbang:<span class="zh">加权平均毛利率：</span></span> <span>${weightedMarginRate.toFixed(1)}%</span></div>` +
+            `<div class="result-item"><span>Margin per Unit Rata-Rata Tertimbang:<span class="zh">加权平均单台毛利：</span></span> <span>${formatIdr(weightedMargin)}</span></div>` +
+            `<div class="result-item"><span>Biaya Tetap Tahunan:<span class="zh">年度固定成本：</span></span> <span>${formatIdr(fc)}</span></div>` +
+            `<div class="result-item"><span>Target Laba Tahunan:<span class="zh">年度目标利润：</span></span> <span>${formatIdr(targetProfit)}</span></div>` +
+            `<div class="result-item" style="border-top:1.5px solid #ccc; padding-top:10px;"><span><b>Total Target Penjualan Tahunan:<span class="zh">年度目标总销量：</span></b></span> <span style="font-size:1.1em;"><b>${targetTotalQty.toLocaleString(undefined, { maximumFractionDigits: 0 })} unit / 台</b></span></div>` +
+            `<div class="result-item"><span>Status Target:<span class="zh">目标达成状态：</span></span> ${progressStatusText}</div>` +
             `<div style="background:#e5e5ea; border-radius:8px; height:12px; margin:12px 0; overflow:hidden;"><div style="background:${progressColor}; width:${Math.min(100, beProgress).toFixed(1)}%; height:100%;"></div></div>` +
-            `<div class="result-item" style="font-size:0.84em; color:#555;"><span>固定成本覆盖率:</span> <b>${beProgress.toFixed(1)}%</b></div>` +
+            `<div class="result-item" style="font-size:0.84em; color:#555;"><span>Rasio Cakupan Biaya Tetap:<span class="zh">固定成本覆盖率：</span></span> <b>${beProgress.toFixed(1)}%</b></div>` +
             whatIfHtml;
     }
 
@@ -718,7 +1028,7 @@
                 <td>${escapeHtml(p.email || '')}</td>
                 <td>${escapeHtml(p.user_id || '')}</td>
                 <td>${escapeHtml(p.role || '')}</td>
-                <td>${p.is_active ? '是' : '否'}</td>
+                <td>${p.is_active ? 'Ya / 是' : 'Tidak / 否'}</td>
             </tr>
         `).join('');
     }
@@ -732,7 +1042,7 @@
             is_active: true
         };
         if (!row.user_id || !row.email) {
-            setStatus('请填写用户 UUID 和邮箱。', 'error');
+            setStatus('Isi UUID pengguna dan email. / 请填写用户 UUID 和邮箱。', 'error');
             return;
         }
         let { error } = await sb.from('app_profiles').upsert(row, { onConflict: 'user_id' });
@@ -741,7 +1051,7 @@
             return;
         }
         await loadProfiles();
-        setStatus('账号权限已保存。', 'success');
+        setStatus('Izin akun sudah disimpan. / 账号权限已保存。', 'success');
     }
 
     async function loadFrontendSettings() {
@@ -777,11 +1087,15 @@
             }
         ], { onConflict: 'key' });
         if (error) {
-            setStatus(error.message, 'error');
+            if (String(error.message || '').includes('permission denied for table app_settings')) {
+                setStatus('Tidak punya izin menulis app_settings. Jalankan SQL grant untuk app_settings di Supabase SQL Editor. / 当前数据库未授权写入 app_settings，请在 Supabase SQL Editor 执行 app_settings 授权 SQL。', 'error');
+            } else {
+                setStatus(error.message, 'error');
+            }
             return;
         }
         calcAll();
-        setStatus('前端设置已保存。', 'success');
+        setStatus('Pengaturan halaman harga sudah disimpan. / 前端设置已保存。', 'success');
     }
 
     function escapeHtml(value) {

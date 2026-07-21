@@ -1,27 +1,28 @@
-# Calon Gloria 印尼产品价格页
+# Halaman Harga Produk Indonesia Calon Gloria
 
-这是可部署到 GitHub Pages 的静态发布目录。
+Direktori statis ini dapat dipublikasikan ke GitHub Pages.
 
-- `index.html`: 前端市场价格展示页，需使用后台账号管理中启用的账号登录；汇率和 PPN 由后台维护
-- `admin.html`: 远程后台登录页，编辑权限由 Supabase RLS 控制
-- `supabase-config.js`: Supabase 项目 URL 与 anon key 配置
-- `CNAME`: 默认自定义域名 `pricing.calongloria.id`
+- `index.html`: halaman harga pasar; akses memakai akun yang aktif di manajemen akun admin; PPN dikelola dari admin.
+- `admin.html`: halaman admin jarak jauh; izin edit dikontrol oleh Supabase RLS.
+- `reset-password.html`: halaman reset kata sandi admin.
+- `supabase-config.js`: konfigurasi Project URL dan anon key Supabase.
+- `CNAME`: domain kustom default `pricing.calongloria.id`.
 
-## 远程后台
+## Admin Jarak Jauh
 
-1. 在 Supabase 创建项目，并启用 Email/Password Auth。
-2. 在 Supabase SQL Editor 执行本地文件 `../docs/supabase-remote-backend.sql`。
-3. 创建第一个 Auth 用户后，按 SQL 文件底部的 bootstrap 语句把该用户设为 `owner`。
-4. 执行本地文件 `../docs/supabase-seed-pricing.sql` 导入当前后台模型和已发布价格。
-5. 把 `supabase-config.js` 中的 `url` 和 `anonKey` 填成 Supabase 项目的 Project URL 与 publishable/anon key。
-6. 推送 GitHub Pages 后访问 `/admin.html`。
+1. Buat proyek Supabase dan aktifkan Email/Password Auth.
+2. Jalankan file lokal `../docs/supabase-remote-backend.sql` di Supabase SQL Editor.
+3. Setelah pengguna Auth pertama dibuat, jadikan pengguna tersebut sebagai `owner` memakai perintah bootstrap di bagian bawah file SQL.
+4. Jalankan file lokal `../docs/supabase-seed-pricing.sql` untuk mengimpor model admin dan harga publikasi awal.
+5. Isi `url` dan `anonKey` di `supabase-config.js` dengan Project URL dan publishable/anon key dari Supabase.
+6. Setelah GitHub Pages dipublikasikan, buka `/admin.html`.
 
-## DNS 设置
+## Pengaturan DNS
 
-在 `calongloria.id` 的 DNS 后台增加一条 CNAME：
+Tambahkan CNAME berikut di DNS `calongloria.id`:
 
 - Host/Name: `pricing`
 - Type: `CNAME`
 - Value/Target: `fangwj0105.github.io`
 
-GitHub Pages 仓库需要把 Pages Source 设置为 `main` 分支根目录，并在 Custom domain 填写 `pricing.calongloria.id`。
+Di repositori GitHub Pages, atur Pages Source ke root cabang `main`, lalu isi Custom domain dengan `pricing.calongloria.id`.

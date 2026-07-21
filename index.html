@@ -66,13 +66,13 @@
     let models = [];
     let marketSettings = { rate: 2650, ppnRate: 11 };
     const TEXT = {
-        loginWithAuthorizedAccount: 'Silakan masuk dengan email yang sudah diaktifkan di manajemen akun backend.<span class="zh">请使用后台账号管理中已启用的邮箱登录。</span>',
+        loginWithAuthorizedAccount: 'Silakan masuk dengan email yang sudah diaktifkan di manajemen akun admin.<span class="zh">请使用后台账号管理中已启用的邮箱登录。</span>',
         loginToView: 'Silakan masuk untuk melihat daftar harga.<span class="zh">请登录后查看价格表。</span>',
         loadedPrices: 'Harga publikasi terbaru berhasil dimuat.<span class="zh">已读取远程发布价格。</span>',
         remoteFailed: 'Gagal memuat harga jarak jauh. Periksa izin akun dan koneksi jaringan.<span class="zh">远程价格读取失败，请确认账号权限和网络状态。</span>',
         noRemoteService: 'Layanan login jarak jauh belum dikonfigurasi, harga tidak dapat ditampilkan.<span class="zh">尚未配置远程登录服务，无法显示价格。</span>',
         noData: 'Belum ada data harga.<span class="zh">暂无价格数据。</span>',
-        unauthorized: 'Akun ini belum diaktifkan di manajemen akun backend, sehingga tidak dapat melihat harga.<span class="zh">当前账号未在后台账号权限中启用，不能查看前端价格。</span>',
+        unauthorized: 'Akun ini belum diaktifkan di manajemen akun admin, sehingga tidak dapat melihat harga.<span class="zh">当前账号未在后台账号权限中启用，不能查看前端价格。</span>',
         loginNotConfigured: 'Layanan login jarak jauh belum dikonfigurasi. / 尚未配置远程登录服务。',
         currentAccount: 'Akun saat ini / 当前账号',
         unauthorizedLabel: 'Belum diotorisasi / 未授权'
@@ -100,12 +100,12 @@
             .replace(/'/g, '&#039;');
     }
 
-    function formatRmb(value) {
-        return `¥${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
-    }
-
     function formatIdr(value) {
         return `Rp ${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
+    }
+
+    function formatRmb(value) {
+        return `¥${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}`;
     }
 
     function formatPercent(value) {
@@ -116,12 +116,12 @@
         return formatPercent(Math.max(0, 100 - Number(discountRate || 0)));
     }
 
-    function roundFinalRmb(value) {
-        return Math.round(Number(value || 0));
-    }
-
     function roundFinalIdr(value) {
         return Math.round(Number(value || 0) / 100000) * 100000;
+    }
+
+    function roundFinalRmb(value) {
+        return Math.round(Number(value || 0));
     }
 
     function clonePublicRows() {
@@ -179,9 +179,9 @@
         if (error) throw error;
         return (data || []).map(row => ({
             name: row.name,
-            retailRmb: Number(row.retail_rmb || 0),
+            retailIdr: Number(row.retail_rmb || 0),
             dealerDiscount: Number(row.dealer_discount || 85),
-            dealerRmb: Number(row.dealer_rmb || 0)
+            dealerIdr: Number(row.dealer_rmb || 0)
         }));
     }
 
@@ -229,8 +229,8 @@
 
     function recalcModels() {
         models.forEach(m => {
-            m.ourPrice = parseFloat(m.retailRmb) || 0;
-            m.dealerPrice = parseFloat(m.dealerRmb) || 0;
+            m.ourPriceIdr = parseFloat(m.retailIdr) || 0;
+            m.dealerPriceIdr = parseFloat(m.dealerIdr) || 0;
         });
     }
 
@@ -238,13 +238,14 @@
         if (!models.length) {
             return `<div class="empty">${TEXT.noData}</div>`;
         }
-        let title = `Daftar Harga Pasar Indonesia per Model (Termasuk PPN ${ppnRate.toFixed(0)}%)<span class="zh">各机型印尼市场价格表 (含${ppnRate.toFixed(0)}%增值税 PPN)</span>`;
+        let safeRate = Number(rate) > 0 ? Number(rate) : 2650;
+        let title = `Daftar Harga Pasar Indonesia per Model (Termasuk PPN ${ppnRate.toFixed(0)}%)<span class="zh">各机型印尼市场价格表（含 ${ppnRate.toFixed(0)}% 增值税 PPN）</span>`;
         let rowsHtml = models.map(m => {
             let taxRate = ppnRate / 100;
-            let retailRmbTax = roundFinalRmb(m.ourPrice * (1 + taxRate));
-            let retailIdrTax = roundFinalIdr(m.ourPrice * (1 + taxRate) * rate);
-            let dealerRmbTax = roundFinalRmb(m.dealerPrice * (1 + taxRate));
-            let dealerIdrTax = roundFinalIdr(m.dealerPrice * (1 + taxRate) * rate);
+            let retailIdrTax = roundFinalIdr(m.ourPriceIdr * (1 + taxRate));
+            let dealerIdrTax = roundFinalIdr(m.dealerPriceIdr * (1 + taxRate));
+            let retailRmbTax = roundFinalRmb(retailIdrTax / safeRate);
+            let dealerRmbTax = roundFinalRmb(dealerIdrTax / safeRate);
             return `<tr>
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
@@ -258,17 +259,18 @@
         return `
             <div class="market-price-header">
                 <strong>${title}</strong>
+                <span class="status">Kurs: ${formatIdr(safeRate)} / RMB 1<span class="zh">汇率：${formatIdr(safeRate)} / RMB 1</span></span>
             </div>
             <div class="table-responsive">
                 <table class="market-price-table">
                     <thead>
                         <tr>
                             <th>Model / Spesifikasi<span class="zh">型号规格</span></th>
-                            <th>Harga Ritel Setelah Pajak RMB<span class="zh">零售税后价 RMB</span></th>
-                            <th>Harga Ritel Setelah Pajak IDR<span class="zh">零售税后价 IDR（10万取整）</span></th>
+                            <th>Harga Ritel Setelah PPN RMB<span class="zh">零售税后价 RMB</span></th>
+                            <th>Harga Ritel Setelah PPN IDR<span class="zh">零售税后价 IDR（10万取整）</span></th>
                             <th>Ruang Diskon Dealer<span class="zh">经销商让利空间</span></th>
-                            <th>Harga Dealer Setelah Pajak RMB<span class="zh">代理商税后价 RMB</span></th>
-                            <th>Harga Dealer Setelah Pajak IDR<span class="zh">代理商税后价 IDR（10万取整）</span></th>
+                            <th>Harga Dealer Setelah PPN RMB<span class="zh">代理商税后价 RMB</span></th>
+                            <th>Harga Dealer Setelah PPN IDR<span class="zh">代理商税后价 IDR（10万取整）</span></th>
                         </tr>
                     </thead>
                     <tbody>${rowsHtml}</tbody>
