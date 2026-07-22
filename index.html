@@ -17,7 +17,7 @@
         .container { max-width: 1100px; margin: auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         h1 { margin: 0 0 18px; color: #0055b3; font-size: 1.35em; text-align: center; }
         .zh { display: block; margin-top: 2px; color: #6e6e73; font-size: 0.86em; font-weight: 500; }
-        th .zh, .market-price-header .zh { font-size: 0.82em; }
+        th .zh, .market-price-header .zh, .role-option .zh { font-size: 0.82em; }
         .login-fields { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
         label { font-weight: 700; font-size: 0.88em; color: #555; }
         input { width: 140px; padding: 8px; border: 1px solid #d2d2d7; border-radius: 6px; text-align: right; font-size: 0.95em; }
@@ -31,13 +31,25 @@
         .session-bar button { background: #eef7ff; color: #0055b3; border: 1px solid #cfe4ff; }
         .status { margin-bottom: 12px; color: #666; font-size: 0.86em; }
         .market-price-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .role-panel { margin: 0 0 14px; padding: 12px; border: 1px solid #d8e4f2; border-radius: 8px; background: #f7fbff; }
+        .role-panel-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 0.9em; color: #333; }
+        .role-options { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 8px; }
+        .role-option { display: block; padding: 9px 10px; border: 1px solid #cfe4ff; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.86em; color: #1d1d1f; }
+        .role-option input { width: auto; margin: 0 6px 0 0; padding: 0; vertical-align: middle; }
+        .role-option:has(input:checked) { border-color: #0055b3; background: #eef7ff; box-shadow: inset 0 0 0 1px #0055b3; }
+        .role-summary { margin-top: 10px; color: #555; font-size: 0.86em; line-height: 1.45; }
         .table-responsive { overflow-x: auto; }
-        .market-price-table { width: 100%; min-width: 980px; border-collapse: collapse; background: white; font-size: 0.9em; }
+        .market-price-table { width: 100%; min-width: 1040px; border-collapse: collapse; background: white; font-size: 0.9em; }
         .market-price-table th { background: #eef7ff; color: #1d1d1f; padding: 10px 8px; border: 1px solid #d8e4f2; text-align: center; }
         .market-price-table td { padding: 9px 8px; border: 1px solid #e5e5ea; text-align: right; white-space: nowrap; }
         .market-price-table td:first-child { text-align: left; font-weight: 700; }
         .dealer-col { background: #f7fff5; color: #1f6f35; }
         .empty { padding: 24px; background: #fff8f0; border: 1px solid #f2d6ad; border-radius: 8px; color: #7a4a00; }
+        @media (max-width: 760px) {
+            body { padding: 12px; }
+            .container { padding: 16px; border-radius: 8px; }
+            .role-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
     </style>
 </head>
 <body>
@@ -66,6 +78,14 @@
     const PUBLIC_PRICE_ROWS = [];
     let models = [];
     let marketSettings = { rate: 2650, ppnRate: 11 };
+    let selectedChannelRole = 'agent';
+    const CHANNEL_ROLES = [
+        { key: 'agent', idLabel: 'Agen Area', zhLabel: '区域代理商', factor: 1 },
+        { key: 'padDealer', idLabel: 'Dealer PAD', zhLabel: 'PAD 经销商', factor: 0.7 },
+        { key: 'repairShop', idLabel: 'Bengkel', zhLabel: '修理厂', factor: 0.6 },
+        { key: 'intermediary', idLabel: 'Perantara', zhLabel: '居间人', factor: 0.25 },
+        { key: 'retailCustomer', idLabel: 'Pelanggan Ritel', zhLabel: '零售客户', factor: 0.25 }
+    ];
     const TEXT = {
         loginWithAuthorizedAccount: 'Silakan masuk dengan email yang sudah diaktifkan di manajemen akun admin.<span class="zh">请使用后台账号管理中已启用的邮箱登录。</span>',
         loginToView: 'Silakan masuk untuk melihat daftar harga.<span class="zh">请登录后查看价格表。</span>',
@@ -76,7 +96,9 @@
         unauthorized: 'Akun ini belum diaktifkan di manajemen akun admin, sehingga tidak dapat melihat harga.<span class="zh">当前账号未在后台账号权限中启用，不能查看前端价格。</span>',
         loginNotConfigured: 'Layanan login jarak jauh belum dikonfigurasi. / 尚未配置远程登录服务。',
         currentAccount: 'Akun saat ini / 当前账号',
-        unauthorizedLabel: 'Belum diotorisasi / 未授权'
+        unauthorizedLabel: 'Belum diotorisasi / 未授权',
+        roleSelectorTitle: 'Pilih Peran Harga<span class="zh">选择价格查看角色</span>',
+        roleRule: 'Diskon penuh mengikuti diskon agen di admin. Harga peran dihitung otomatis dari bobot peran.<span class="zh">满额折扣来自后台代理商折扣率，当前角色价格按角色权重自动折算。</span>'
     };
 
     function setStatus(message) {
@@ -110,11 +132,39 @@
     }
 
     function formatPercent(value) {
-        return `${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:1})}%`;
+        return `${Number(value || 0).toLocaleString(undefined, {maximumFractionDigits:0})}%`;
     }
 
-    function formatDealerAllowance(discountRate) {
-        return formatPercent(Math.max(0, 100 - Number(discountRate || 0)));
+    function getChannelRole(key = selectedChannelRole) {
+        return CHANNEL_ROLES.find(role => role.key === key) || CHANNEL_ROLES[0];
+    }
+
+    function getFullDiscountRate(dealerDiscount) {
+        return Math.max(0, 100 - Number(dealerDiscount || 0));
+    }
+
+    function getRoleDiscountRate(dealerDiscount, role = getChannelRole()) {
+        return Math.round(getFullDiscountRate(dealerDiscount) * role.factor);
+    }
+
+    function buildRoleSelectorHtml() {
+        let optionsHtml = CHANNEL_ROLES.map(role => `
+            <label class="role-option">
+                <input type="radio" name="channel-role" value="${role.key}" ${role.key === selectedChannelRole ? 'checked' : ''} onchange="selectChannelRole(this.value)">
+                ${escapeHtml(role.idLabel)}<span class="zh">${escapeHtml(role.zhLabel)} · ${formatPercent(role.factor * 100)}</span>
+            </label>
+        `).join('');
+        let role = getChannelRole();
+        return `
+            <div class="role-panel">
+                <div class="role-panel-title">
+                    <strong>${TEXT.roleSelectorTitle}</strong>
+                    <span>${escapeHtml(role.idLabel)} / ${escapeHtml(role.zhLabel)}</span>
+                </div>
+                <div class="role-options">${optionsHtml}</div>
+                <div class="role-summary">${TEXT.roleRule}</div>
+            </div>
+        `;
     }
 
     function roundFinalIdr(value) {
@@ -240,27 +290,33 @@
             return `<div class="empty">${TEXT.noData}</div>`;
         }
         let safeRate = Number(rate) > 0 ? Number(rate) : 2650;
+        let role = getChannelRole();
         let title = `Daftar Harga Pasar Indonesia per Model (Termasuk PPN ${ppnRate.toFixed(0)}%)<span class="zh">各机型印尼市场价格表（含 ${ppnRate.toFixed(0)}% 增值税 PPN）</span>`;
         let rowsHtml = models.map(m => {
             let taxRate = ppnRate / 100;
             let retailIdrTax = roundFinalIdr(m.ourPriceIdr * (1 + taxRate));
-            let dealerIdrTax = roundFinalIdr(m.dealerPriceIdr * (1 + taxRate));
+            let fullDiscountRate = getFullDiscountRate(m.dealerDiscount);
+            let roleDiscountRate = getRoleDiscountRate(m.dealerDiscount, role);
+            let rolePriceIdr = m.ourPriceIdr * (1 - (roleDiscountRate / 100));
+            let roleIdrTax = roundFinalIdr(rolePriceIdr * (1 + taxRate));
             let retailRmbTax = roundFinalRmb(retailIdrTax / safeRate);
-            let dealerRmbTax = roundFinalRmb(dealerIdrTax / safeRate);
+            let roleRmbTax = roundFinalRmb(roleIdrTax / safeRate);
             return `<tr>
                 <td>${escapeHtml(m.name)}</td>
                 <td>${formatRmb(retailRmbTax)}</td>
                 <td>${formatIdr(retailIdrTax)}</td>
-                <td class="dealer-col">${formatDealerAllowance(m.dealerDiscount || 85)}</td>
-                <td class="dealer-col">${formatRmb(dealerRmbTax)}</td>
-                <td class="dealer-col">${formatIdr(dealerIdrTax)}</td>
+                <td class="dealer-col">${formatPercent(fullDiscountRate)}</td>
+                <td class="dealer-col">${formatPercent(roleDiscountRate)}</td>
+                <td class="dealer-col">${formatRmb(roleRmbTax)}</td>
+                <td class="dealer-col">${formatIdr(roleIdrTax)}</td>
             </tr>`;
         }).join('');
 
         return `
+            ${buildRoleSelectorHtml()}
             <div class="market-price-header">
                 <strong>${title}</strong>
-                <span class="status">Kurs: ${formatIdr(safeRate)} / RMB 1<span class="zh">汇率：${formatIdr(safeRate)} / RMB 1</span></span>
+                <span class="status">Peran: ${escapeHtml(role.idLabel)} / ${escapeHtml(role.zhLabel)} · Kurs: ${formatIdr(safeRate)} / RMB 1<span class="zh">角色：${escapeHtml(role.zhLabel)} · 汇率：${formatIdr(safeRate)} / RMB 1</span></span>
             </div>
             <div class="table-responsive">
                 <table class="market-price-table">
@@ -269,9 +325,10 @@
                             <th>Model / Spesifikasi<span class="zh">型号规格</span></th>
                             <th>Harga Ritel Setelah PPN RMB<span class="zh">零售税后价 RMB</span></th>
                             <th>Harga Ritel Setelah PPN IDR<span class="zh">零售税后价 IDR（10万取整）</span></th>
-                            <th>Ruang Diskon Dealer<span class="zh">经销商让利空间</span></th>
-                            <th>Harga Dealer Setelah PPN RMB<span class="zh">代理商税后价 RMB</span></th>
-                            <th>Harga Dealer Setelah PPN IDR<span class="zh">代理商税后价 IDR（10万取整）</span></th>
+                            <th>Diskon Penuh Agen<span class="zh">代理商满额折扣率</span></th>
+                            <th>Diskon Peran Saat Ini<span class="zh">当前角色折扣率</span></th>
+                            <th>Harga Peran Setelah PPN RMB<span class="zh">当前角色税后价 RMB</span></th>
+                            <th>Harga Peran Setelah PPN IDR<span class="zh">当前角色税后价 IDR（10万取整）</span></th>
                         </tr>
                     </thead>
                     <tbody>${rowsHtml}</tbody>
@@ -282,6 +339,11 @@
     function renderPrices() {
         recalcModels();
         document.getElementById('price-output').innerHTML = buildMarketPriceTableHtml(marketSettings.rate, marketSettings.ppnRate);
+    }
+
+    function selectChannelRole(roleKey) {
+        selectedChannelRole = getChannelRole(roleKey).key;
+        renderPrices();
     }
 
     async function renderPage() {
