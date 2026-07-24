@@ -295,9 +295,14 @@
         let rowsHtml = models.map(m => {
             let taxRate = ppnRate / 100;
             let retailIdrTax = roundFinalIdr(m.ourPriceIdr * (1 + taxRate));
-            let fullDiscountRate = getFullDiscountRate(m.dealerDiscount);
-            let roleDiscountRate = getRoleDiscountRate(m.dealerDiscount, role);
-            let rolePriceIdr = m.ourPriceIdr * (1 - (roleDiscountRate / 100));
+            let publishedDealerIdr = m.dealerPriceIdr > 0
+                ? m.dealerPriceIdr
+                : m.ourPriceIdr * (Number(m.dealerDiscount || 85) / 100);
+            let fullDiscountRate = m.ourPriceIdr > 0
+                ? Math.max(0, (1 - (publishedDealerIdr / m.ourPriceIdr)) * 100)
+                : getFullDiscountRate(m.dealerDiscount);
+            let roleDiscountRate = Math.round(fullDiscountRate * role.factor);
+            let rolePriceIdr = m.ourPriceIdr - ((m.ourPriceIdr - publishedDealerIdr) * role.factor);
             let roleIdrTax = roundFinalIdr(rolePriceIdr * (1 + taxRate));
             let retailRmbTax = roundFinalRmb(retailIdrTax / safeRate);
             let roleRmbTax = roundFinalRmb(roleIdrTax / safeRate);

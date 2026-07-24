@@ -112,7 +112,7 @@
 
             <div id="view-pricing">
                 <div class="bar">
-                    <div class="note">Setelah model admin lengkap disimpan, tombol publikasi hanya mengirim model, harga ritel sebelum PPN, dan harga dealer sebelum PPN untuk halaman harga.<span class="zh">保存完整后台模型后，点击发布前端价格会只发布型号、零售未税价、代理未税价给前端展示。</span></div>
+                    <div class="note">Tombol publikasi otomatis menyimpan model admin terbaru, lalu mengirim model, harga ritel sebelum PPN, dan harga dealer sebelum PPN untuk halaman harga.<span class="zh">点击发布前端价格会自动先保存最新后台模型，再发布型号、零售未税价、代理未税价给前端展示。</span></div>
                     <div>
                         <button class="secondary" onclick="loadModels()">Muat Ulang Data<span class="zh">刷新后台数据</span></button>
                         <button id="save-models-btn" onclick="saveModels()">Simpan Model<span class="zh">保存后台模型</span></button>
@@ -550,35 +550,59 @@
         setStatus(models.length ? 'Model admin berhasil dimuat. / 后台模型已加载。' : 'Model admin kosong. Jalankan seed SQL untuk mengimpor model awal. / 后台模型为空，请先执行 seed SQL 导入初始模型。');
     }
 
+    function buildAdminModelRows() {
+        let now = new Date().toISOString();
+        return models.map((m, index) => {
+            let id = Number(m.id || index + 1);
+            let payload = { ...m, id };
+            delete payload.ourPrice;
+            delete payload.dealerPrice;
+            delete payload.compPriceNetIdr;
+            delete payload.commissionCost;
+            delete payload.margin;
+            delete payload.marginRate;
+            return { id, payload, updated_at: now };
+        });
+    }
+
+    function buildPublishedPriceRows() {
+        let now = new Date().toISOString();
+        return models.map((m, index) => ({
+            id: Number(m.id || index + 1),
+            sort_order: index + 1,
+            name: m.name,
+            retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
+            dealer_discount: Math.round(numberValue(m.dealerDiscount, 85) * 100) / 100,
+            dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100,
+            updated_at: now
+        }));
+    }
+
+    function ensureModelDataReady() {
+        calcAll();
+        let issues = getCostScaleIssues(models);
+        if (issues.length) throw new Error(buildCostScaleIssueMessage(issues));
+    }
+
+    async function persistAdminModels(sb) {
+        let rows = buildAdminModelRows();
+        let ids = rows.map(row => row.id);
+        let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+        let stale = await sb.from('pricing_models').delete().not('id', 'in', `(${ids.join(',')})`);
+        if (stale.error) throw stale.error;
+    }
+
     async function saveModels() {
         setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', true);
         setStatus('Menyimpan model admin... / 正在保存后台模型...', '');
         let sb = getClient();
         try {
-            calcAll();
-            let issues = getCostScaleIssues(models);
-            if (issues.length) {
-                setStatus(buildCostScaleIssueMessage(issues), 'error');
-                setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', false);
-                return;
-            }
-            let rows = models.map((m, index) => {
-                let id = Number(m.id || index + 1);
-                let payload = { ...m, id };
-                delete payload.ourPrice;
-                delete payload.dealerPrice;
-                delete payload.compPriceNetIdr;
-                delete payload.commissionCost;
-                delete payload.margin;
-                delete payload.marginRate;
-                return { id, payload };
-            });
-            let { error } = await sb.from('pricing_models').upsert(rows, { onConflict: 'id' });
-            if (error) {
-                setStatus(error.message, 'error');
-                return;
-            }
+            ensureModelDataReady();
+            await persistAdminModels(sb);
             setStatus(`Model admin sudah disimpan. Waktu simpan: ${new Date().toLocaleString()} / 后台模型已保存。保存时间：${new Date().toLocaleString()}`, 'success');
+        } catch (error) {
+            setStatus(error.message, 'error');
         } finally {
             setButtonBusy('save-models-btn', 'Menyimpan... / 保存中...', false);
         }
@@ -586,35 +610,20 @@
 
     async function publishPrices() {
         setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', true);
-        setStatus('Mempublikasikan harga... / 正在发布前端价格...', '');
+        setStatus('Menyimpan model admin dan mempublikasikan harga... / 正在保存后台模型并发布前端价格...', '');
         let sb = getClient();
         try {
-            calcAll();
-            let issues = getCostScaleIssues(models);
-            if (issues.length) {
-                setStatus(buildCostScaleIssueMessage(issues), 'error');
-                setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', false);
-                return;
-            }
-            let rows = models.map((m, index) => ({
-                id: Number(m.id || index + 1),
-                sort_order: index + 1,
-                name: m.name,
-                retail_rmb: Math.round(numberValue(m.ourPrice) * 100) / 100,
-                dealer_discount: Math.round(numberValue(m.dealerDiscount, 85) * 100) / 100,
-                dealer_rmb: Math.round(numberValue(m.dealerPrice) * 100) / 100
-            }));
-            let remove = await sb.from('published_prices').delete().gt('id', 0);
-            if (remove.error) {
-                setStatus(remove.error.message, 'error');
-                return;
-            }
-            let { error } = await sb.from('published_prices').insert(rows);
-            if (error) {
-                setStatus(error.message, 'error');
-                return;
-            }
-            setStatus(`Harga sudah dipublikasikan. Muat ulang halaman harga untuk melihat data terbaru. Waktu publikasi: ${new Date().toLocaleString()} / 前端价格已发布。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
+            ensureModelDataReady();
+            await persistAdminModels(sb);
+            let rows = buildPublishedPriceRows();
+            let ids = rows.map(row => row.id);
+            let { error } = await sb.from('published_prices').upsert(rows, { onConflict: 'id' });
+            if (error) throw error;
+            let stale = await sb.from('published_prices').delete().not('id', 'in', `(${ids.join(',')})`);
+            if (stale.error) throw stale.error;
+            setStatus(`Harga sudah dipublikasikan dari model admin terbaru. Muat ulang halaman harga untuk melihat data terbaru. Waktu publikasi: ${new Date().toLocaleString()} / 已用最新后台模型发布前端价格。请刷新前端价格页查看最新数据。发布时间：${new Date().toLocaleString()}`, 'success');
+        } catch (error) {
+            setStatus(error.message, 'error');
         } finally {
             setButtonBusy('publish-prices-btn', 'Mempublikasikan... / 发布中...', false);
         }
