@@ -86,7 +86,7 @@
                 <label for="password">Kata Sandi<span class="zh">密码</span></label>
                 <input id="password" type="password" autocomplete="current-password">
             </div>
-            <button onclick="signIn()">Masuk Admin<span class="zh">登录后台</span></button>
+            <button id="admin-login-btn" onclick="signIn()">Masuk Admin<span class="zh">登录后台</span></button>
             <button class="secondary" onclick="sendPasswordReset()">Kirim Email Reset<span class="zh">发送重置邮件</span></button>
             <a href="/" style="align-self:center; color:#0055b3; font-weight:700;">Kembali ke Halaman Harga<span class="zh">返回前端价格页</span></a>
         </div>
@@ -296,8 +296,31 @@
     function getClient() {
         let cfg = window.CALON_SUPABASE || {};
         if (!cfg.url || !cfg.anonKey || !window.supabase) return null;
-        if (!client) client = window.supabase.createClient(cfg.url, cfg.anonKey);
+        if (!client) {
+            client = window.supabase.createClient(cfg.url, cfg.anonKey, {
+                global: { fetch: fetchWithTimeout }
+            });
+        }
         return client;
+    }
+
+    async function fetchWithTimeout(resource, options = {}) {
+        let timeoutMs = window.CALON_SUPABASE?.timeoutMs || 15000;
+        let controller = new AbortController();
+        let timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(resource, {
+                ...options,
+                signal: options.signal || controller.signal
+            });
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. Periksa koneksi Supabase. / 请求超时，请检查 Supabase 连接。');
+            }
+            throw error;
+        } finally {
+            window.clearTimeout(timeout);
+        }
     }
 
     function switchTab(name) {
@@ -318,12 +341,20 @@
         }
         let email = document.getElementById('email').value.trim();
         let password = document.getElementById('password').value;
-        let { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) {
-            setStatus(error.message, 'error');
-            return;
+        setButtonBusy('admin-login-btn', 'Sedang masuk... / 正在登录...', true);
+        setStatus('Sedang masuk... / 正在登录...', '');
+        try {
+            let { error } = await sb.auth.signInWithPassword({ email, password });
+            if (error) {
+                setStatus(error.message, 'error');
+                return;
+            }
+            await bootstrap();
+        } catch (error) {
+            setStatus(error.message || 'Login gagal. Periksa koneksi jaringan. / 登录失败，请检查网络连接。', 'error');
+        } finally {
+            setButtonBusy('admin-login-btn', '', false);
         }
-        await bootstrap();
     }
 
     async function sendPasswordReset() {

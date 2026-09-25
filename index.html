@@ -60,7 +60,7 @@
         <div class="login-fields">
             <input type="email" id="front-email" placeholder="Email / 邮箱">
             <input type="password" id="front-password" placeholder="Kata sandi / 密码">
-            <button onclick="loginFrontend()">Masuk <span class="zh">登录</span></button>
+            <button id="front-login-btn" onclick="loginFrontend()">Masuk <span class="zh">登录</span></button>
         </div>
     </div>
     <div id="session-bar" class="session-bar" hidden>
@@ -95,6 +95,8 @@
         noData: 'Belum ada data harga.<span class="zh">暂无价格数据。</span>',
         unauthorized: 'Akun ini belum diaktifkan di manajemen akun admin, sehingga tidak dapat melihat harga.<span class="zh">当前账号未在后台账号权限中启用，不能查看前端价格。</span>',
         loginNotConfigured: 'Layanan login jarak jauh belum dikonfigurasi. / 尚未配置远程登录服务。',
+        loggingIn: 'Sedang masuk...<span class="zh">正在登录...</span>',
+        loginFailed: 'Login gagal. Periksa email, kata sandi, dan koneksi jaringan.<span class="zh">登录失败，请检查邮箱、密码和网络连接。</span>',
         currentAccount: 'Akun saat ini / 当前账号',
         unauthorizedLabel: 'Belum diotorisasi / 未授权',
         roleSelectorTitle: 'Pilih Peran Harga<span class="zh">选择价格查看角色</span>',
@@ -109,9 +111,30 @@
         let config = window.CALON_SUPABASE || {};
         if (!config.url || !config.anonKey || !window.supabase) return null;
         if (!supabaseClient) {
-            supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+            supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+                global: { fetch: fetchWithTimeout }
+            });
         }
         return supabaseClient;
+    }
+
+    async function fetchWithTimeout(resource, options = {}) {
+        let timeoutMs = window.CALON_SUPABASE?.timeoutMs || 15000;
+        let controller = new AbortController();
+        let timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(resource, {
+                ...options,
+                signal: options.signal || controller.signal
+            });
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. Periksa koneksi Supabase. / 请求超时，请检查 Supabase 连接。');
+            }
+            throw error;
+        } finally {
+            window.clearTimeout(timeout);
+        }
     }
 
     function escapeHtml(value) {
@@ -359,17 +382,26 @@
     async function loginFrontend() {
         let client = getSupabaseClient();
         if (!client) {
-            alert(TEXT.loginNotConfigured);
+            setStatus(TEXT.loginNotConfigured);
             return;
         }
         let email = document.getElementById('front-email').value.trim();
         let password = document.getElementById('front-password').value;
-        let { error } = await client.auth.signInWithPassword({ email, password });
-        if (error) {
-            alert(error.message);
-            return;
+        let button = document.getElementById('front-login-btn');
+        button.disabled = true;
+        setStatus(TEXT.loggingIn);
+        try {
+            let { error } = await client.auth.signInWithPassword({ email, password });
+            if (error) {
+                setStatus(`${TEXT.loginFailed}${error.message ? `<span class="zh">${escapeHtml(error.message)}</span>` : ''}`);
+                return;
+            }
+            await renderPage();
+        } catch (error) {
+            setStatus(`${TEXT.loginFailed}${error.message ? `<span class="zh">${escapeHtml(error.message)}</span>` : ''}`);
+        } finally {
+            button.disabled = false;
         }
-        renderPage();
     }
 
     async function logoutFrontend() {
