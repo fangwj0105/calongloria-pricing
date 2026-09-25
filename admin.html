@@ -225,9 +225,16 @@
 
             <div id="view-access" class="hidden">
                 <div class="panel">
-                    <div class="note">Halaman harga menggunakan akses akun resmi. Nilai harga yang dipublikasikan dari admin sudah dalam IDR; kurs dan PPN hanya dipakai halaman harga untuk tampilan konversi.<span class="zh">前端固定为授权账号登录访问。后台发布的价格已经是 IDR，汇率和 PPN 只用于前端展示换算。</span></div>
+                    <div class="note">Halaman harga membaca data dari tabel publikasi harga. Pilih apakah halaman depan bisa dibaca publik atau hanya akun resmi. Nilai harga yang dipublikasikan dari admin sudah dalam IDR; kurs dan PPN hanya dipakai halaman harga untuk tampilan konversi.<span class="zh">前端价格页读取发布价格表。可选择公开读取，或仅授权账号登录访问。后台发布的价格已经是 IDR，汇率和 PPN 只用于前端展示换算。</span></div>
                 </div>
                 <div class="settings-grid panel">
+                    <div>
+                        <label for="frontend-access-mode">Akses Halaman Harga<span class="zh">前端访问方式</span></label>
+                        <select id="frontend-access-mode">
+                            <option value="public">Publik / 公开</option>
+                            <option value="private">Akun resmi / 授权账号</option>
+                        </select>
+                    </div>
                     <div>
                         <label for="market-rate">Kurs IDR/RMB<span class="zh">IDR/RMB 汇率</span></label>
                         <input id="market-rate" type="number" value="2650">
@@ -1097,30 +1104,39 @@
 
     async function loadFrontendSettings() {
         let sb = getClient();
-        let { data } = await sb
+        let { data: marketData } = await sb
             .from('app_settings')
             .select('value')
             .eq('key', 'market_settings')
             .maybeSingle();
+        let { data: accessData } = await sb
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'frontend_access')
+            .maybeSingle();
         marketSettings = {
-            rate: Number(data?.value?.rate) || 2650,
-            ppnRate: Number(data?.value?.ppnRate) || 11
+            rate: Number(marketData?.value?.rate) || 2650,
+            ppnRate: Number(marketData?.value?.ppnRate) || 11
         };
+        let accessMode = accessData?.value?.mode === 'private' ? 'private' : 'public';
+        let accessInput = document.getElementById('frontend-access-mode');
         let rateInput = document.getElementById('market-rate');
         let ppnInput = document.getElementById('market-ppn');
+        if (accessInput) accessInput.value = accessMode;
         if (rateInput) rateInput.value = marketSettings.rate;
         if (ppnInput) ppnInput.value = marketSettings.ppnRate;
     }
 
     async function saveFrontendSettings() {
         let sb = getClient();
+        let accessMode = document.getElementById('frontend-access-mode')?.value === 'private' ? 'private' : 'public';
         let rate = numberValue(document.getElementById('market-rate').value, 2650);
         let ppnRate = numberValue(document.getElementById('market-ppn').value, 11);
         marketSettings = { rate, ppnRate };
         let { error } = await sb.from('app_settings').upsert([
             {
                 key: 'frontend_access',
-                value: { mode: 'private' }
+                value: { mode: accessMode }
             },
             {
                 key: 'market_settings',
